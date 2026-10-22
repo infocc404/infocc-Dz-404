@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://infocc404.github.io/info_cc_404/sitemap.xml

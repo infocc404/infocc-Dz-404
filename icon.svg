@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <rect width="512" height="512" fill="#000000" rx="40"/>
+  <rect x="24" y="24" width="464" height="464" fill="none" stroke="#ff2b2b" stroke-width="8" rx="24"/>
+  <!-- Top terminal bar -->
+  <line x1="24" y1="84" x2="488" y2="84" stroke="#ff2b2b" stroke-width="4"/>
+  <circle cx="64" cy="54" r="8" fill="#ff2b2b"/>
+  <circle cx="94" cy="54" r="8" fill="#333333"/>
+  <circle cx="124" cy="54" r="8" fill="#333333"/>
+  <!-- Terminal Prompt -->
+  <text x="60" y="160" fill="#ff2b2b" font-family="'JetBrains Mono', monospace" font-size="38" font-weight="bold">&gt;_ info_cc</text>
+  <!-- 404 block -->
+  <text x="70" y="310" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="110" font-weight="900" letter-spacing="4">4<tspan fill="#ff2b2b">0</tspan>4</text>
+  <!-- Subtitle -->
+  <text x="70" y="380" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="28" letter-spacing="2">UNIV CS PORTAL</text>
+  <rect x="360" y="356" width="16" height="28" fill="#ff2b2b"/>
+</svg>

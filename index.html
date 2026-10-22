@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>info cc 404 — منصة طلبة الإعلام الآلي</title>
+  <meta name="description" content="منصة ملفات طلبة مهندس دولة في الإعلام الآلي (الأفواج G1 إلى G10).">
+  <meta name="theme-color" content="#F5EFE6">
+
+  <!-- Icons & PWA -->
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+
+  <!-- OpenGraph -->
+  <meta property="og:title" content="info cc 404 — منصة طلبة الإعلام الآلي">
+  <meta property="og:description" content="منصة ملفات طلبة مهندس دولة في الإعلام الآلي (الأفواج G1 إلى G10).">
+  <meta property="og:type" content="website">
+
+  <!-- Google Fonts: Readex Pro + JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Readex+Pro:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- PDF.js 3.11.174 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    }
+  </script>
+
+  <!-- Supabase JS v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+
+  <!-- Config (MUST be before app.js) -->
+  <script src="config.js"></script>
+
+  <!-- Academic Data -->
+  <script src="data.js"></script>
+</head>
+<body>
+  <!-- Root App Mount -->
+  <div id="appRoot">
+    <div style="padding: 40px; text-align: center; color: #7A6A5C;">جاري التحميل...</div>
+  </div>
+
+  <!-- App Entry Script -->
+  <script type="module" src="app.js"></script>
+
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>

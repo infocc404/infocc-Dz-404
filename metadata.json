@@ -1,0 +1,8 @@
+{
+  "name": "info cc 404",
+  "description": "منصة ملفات الدروس، الأعمال الموجهة، التطبيقية والإعلانات لطلبة الإعلام الآلي بالجزائر - Université Informatique Algérie.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
