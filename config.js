@@ -1,4 +1,7 @@
+// i 404 — Supabase public client configuration
+// Replace these two placeholders with your EXISTING Supabase project URL and anon/publishable key.
+// Never put a service_role/secret key in this file.
 window.INFOCC_CONFIG = {
-  SUPABASE_URL: "https://ubqezeogtzesrkyvicnc.supabase.co",
-  SUPABASE_ANON_KEY: "sb_publishable_EbY0t9yKdz2vb-L09ddA_Q_bie0CCci"
+  SUPABASE_URL: "PASTE_YOUR_EXISTING_SUPABASE_PROJECT_URL_HERE",
+  SUPABASE_ANON_KEY: "PASTE_YOUR_EXISTING_SUPABASE_ANON_OR_PUBLISHABLE_KEY_HERE"
 };

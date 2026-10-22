@@ -655,6 +655,9 @@ function renderApp() {
           </div>
 
           <div class="topbar-right-info">
+            <button type="button" id="notificationBellBtn" class="notification-bell" aria-label="الإشعارات" title="الإشعارات" style="position:relative;border:1px solid #e2d2bf;background:#fffaf3;color:#684b32;border-radius:12px;padding:9px 12px;cursor:pointer;font:inherit;min-width:44px;">
+              <span aria-hidden="true" style="font-size:18px;line-height:1;">♧</span><span id="notificationUnreadCount" style="display:none;position:absolute;top:-6px;left:-6px;background:#a33b2f;color:white;border-radius:20px;min-width:18px;height:18px;padding:0 4px;font-size:11px;line-height:18px;text-align:center;"></span>
+            </button>
             <span class="role-badge ${state.role}">
               ${getRoleBadgeText(state.role, state.uploaderGroup)}
             </span>
@@ -706,6 +709,7 @@ function attachShellEvents() {
   const menuBtn = document.getElementById("mobileMenuBtn");
   const logoutBtn = document.getElementById("sidebarLogoutBtn");
   const avatar = document.getElementById("topbarAvatar");
+  const notificationBell = document.getElementById("notificationBellBtn");
   const searchInput = document.getElementById("topSearchInput");
   const searchDropdown = document.getElementById("searchResultsDropdown");
 
@@ -734,9 +738,11 @@ function attachShellEvents() {
   }
 
   if (avatar) {
-    avatar.onclick = () => {
-      location.hash = "#/compte";
-    };
+    avatar.onclick = () => { location.hash = "#/compte"; };
+  }
+  if (notificationBell) {
+    notificationBell.onclick = () => { location.hash = "#/notifications"; };
+    refreshNotificationBadge();
   }
 
   // Live Search in readable files
@@ -854,6 +860,50 @@ async function moveFileToGroup(file, targetGroup) {
 }
 
 // 11. ROUTE DISPATCHER
+// Internal notifications. Requires migration_notifications_adminlog.sql to be applied once.
+async function loadMyNotifications() {
+  if (!state.user?.id) return [];
+  const { data, error } = await supabase.from("user_notifications")
+    .select("id,title,body,kind,link,created_at,read_at")
+    .eq("user_id", state.user.id).order("created_at", { ascending: false }).limit(100);
+  if (error) { console.warn("Notifications are unavailable; apply migration_notifications_adminlog.sql", error.message); return null; }
+  return data || [];
+}
+async function refreshNotificationBadge() {
+  const badge = document.getElementById("notificationUnreadCount");
+  if (!badge || !state.user?.id) return;
+  const { count, error } = await supabase.from("user_notifications").select("id", { count: "exact", head: true }).eq("user_id", state.user.id).is("read_at", null);
+  if (error) { badge.style.display = "none"; return; }
+  badge.textContent = count > 99 ? "99+" : String(count || 0);
+  badge.style.display = count > 0 ? "inline-block" : "none";
+}
+async function renderNotificationsView(page) {
+  page.innerHTML = `<div class="page-banner"><h2>الإشعارات</h2><p>تابع آخر التنبيهات والتحديثات الخاصة بحسابك.</p></div>
+    <section class="content-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px"><h3 style="margin:0;color:var(--brown-dark)">آخر الإشعارات</h3><button type="button" id="markAllNotificationsRead" class="btn-secondary" style="width:auto">تحديد الكل كمقروء</button></div><div id="notificationsList" style="display:grid;gap:10px"><p>جارٍ تحميل الإشعارات...</p></div></section>`;
+  const listEl = page.querySelector("#notificationsList");
+  const items = await loadMyNotifications();
+  if (items === null) { listEl.innerHTML = `<p style="line-height:1.9">لم يتم تفعيل جدول الإشعارات في قاعدة البيانات بعد. طبّق ملف <code>migration_notifications_adminlog.sql</code> في SQL Editor داخل مشروع Supabase الحالي، ثم أعد تحميل الصفحة.</p>`; page.querySelector("#markAllNotificationsRead").disabled = true; return; }
+  listEl.innerHTML = items.length ? items.map(n => `<article style="padding:14px;border:1px solid ${n.read_at?'#e8dfd4':'#d8b98f'};border-radius:12px;background:${n.read_at?'#fff':'#fffaf1'}"><div style="display:flex;gap:10px;justify-content:space-between;align-items:start"><strong>${escapeHtml(n.title || 'إشعار')}</strong>${n.read_at?'':'<span style="font-size:11px;color:#8a5a26;font-weight:700">جديد</span>'}</div><p style="white-space:pre-wrap;line-height:1.8;margin:8px 0;color:#51483e">${escapeHtml(n.body || '')}</p><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><small style="color:var(--muted)">${escapeHtml(n.created_at ? new Date(n.created_at).toLocaleString('ar') : '')}</small><div style="display:flex;gap:8px">${n.link?`<button class="btn-secondary notification-open" data-id="${escapeHtml(n.id)}" data-link="${escapeHtml(n.link)}" style="width:auto">فتح</button>`:''}${n.read_at?'':`<button class="btn-secondary notification-read" data-id="${escapeHtml(n.id)}" style="width:auto">تحديد كمقروء</button>`}</div></div></article>`).join("") : `<p style="text-align:center;padding:24px;color:var(--muted)">لا توجد إشعارات حتى الآن.</p>`;
+  page.querySelectorAll(".notification-read").forEach(btn => btn.addEventListener("click", async () => {
+    const { error } = await supabase.from("user_notifications").update({ read_at: new Date().toISOString() }).eq("id", btn.dataset.id).eq("user_id", state.user.id);
+    if (error) { alert("تعذر تحديث الإشعار. تحقق من تطبيق migration_notifications_adminlog.sql."); return; }
+    renderNotificationsView(page); refreshNotificationBadge();
+  }));
+  page.querySelectorAll(".notification-open").forEach(btn => btn.addEventListener("click", async () => {
+    await supabase.from("user_notifications").update({ read_at: new Date().toISOString() }).eq("id", btn.dataset.id).eq("user_id", state.user.id);
+    const link = btn.dataset.link || "";
+    if (link.startsWith("#/")) location.hash = link;
+    else if (link === "announcements") location.hash = "#/announcements";
+    else location.hash = "#/";
+  }));
+  page.querySelector("#markAllNotificationsRead").onclick = async () => {
+    const { error } = await supabase.from("user_notifications").update({ read_at: new Date().toISOString() }).eq("user_id", state.user.id).is("read_at", null);
+    if (error) { alert("تعذر تحديث الإشعارات."); return; }
+    await renderNotificationsView(page); refreshNotificationBadge();
+  };
+  refreshNotificationBadge();
+}
+
 function dispatchRoute(hash) {
   const page = document.getElementById("pageContent");
   if (!page) return;
@@ -865,10 +915,8 @@ function dispatchRoute(hash) {
   }
 
   // #/announcements
-  if (hash === "#/announcements") {
-    renderAnnouncementsView(page);
-    return;
-  }
+  if (hash === "#/announcements") { renderAnnouncementsView(page); return; }
+  if (hash === "#/notifications") { renderNotificationsView(page); return; }
   if (hash === "#/search") { renderSearchPage(page); return; }
   if (hash === "#/favorites") { renderFavoritesPage(page); return; }
   if (hash === "#/support") { renderSupportPage(page); return; }
