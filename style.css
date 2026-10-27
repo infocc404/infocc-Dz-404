@@ -1199,3 +1199,24 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
   .login-page .auth-panel-banner::after { animation: none !important; }
   .login-page *, .login-page *::before, .login-page *::after { transition: none !important; }
 }
+
+
+/* 2026 warm academic refresh — preserve existing routes and permissions */
+:root { --bg:#f6f0e7; --card:#fffdf9; --ink:#302319; --muted:#806d5c; --line:#e8dac8; --brown:#8a5a38; --brown-dark:#593820; --soft:#f0e2d0; --radius:16px; }
+body { background: radial-gradient(ellipse at 8% 0%, rgba(221,184,139,.16), transparent 38%), var(--bg); }
+.app-sidebar { background:linear-gradient(180deg,#593923 0%,#432a1b 100%); box-shadow:8px 0 30px rgba(63,39,22,.09); }
+.sidebar-header { border-bottom:1px solid rgba(255,255,255,.12); }
+.sidebar-brand-name { letter-spacing:.2px; }
+.app-topbar { background:rgba(255,252,247,.94); backdrop-filter:blur(12px); border-bottom:1px solid rgba(112,78,48,.12); }
+.content-card,.shortcut-card,.auth-card,.support-report-item,.file-result-card { border-radius:var(--radius); border-color:var(--line); box-shadow:0 5px 20px rgba(82,54,30,.045); transition:box-shadow .18s ease, transform .18s ease, border-color .18s ease; }
+.shortcut-card:hover,.file-result-card:hover { transform:translateY(-2px); box-shadow:0 10px 26px rgba(82,54,30,.09); border-color:#d7b995; }
+.page-banner { position:relative; overflow:hidden; border:1px solid #ead5bb; border-radius:18px; background:linear-gradient(118deg,#fffaf1 0%,#f4e3cd 55%,#e8c8a4 100%); box-shadow:0 7px 22px rgba(89,56,32,.06); }
+.page-banner::after { content:""; position:absolute; inset:auto -28px -70px auto; width:210px; height:210px; border-radius:50%; background:rgba(168,111,66,.09); pointer-events:none; }
+.page-banner h2 { color:var(--brown-dark); }
+.btn-primary { background:linear-gradient(135deg,#795034,#583820); border-radius:11px; box-shadow:0 4px 10px rgba(89,56,32,.12); }
+.btn-secondary { border-radius:11px; border-color:#e3d2bd; background:#fffaf3; }
+.data-table { border-radius:12px; overflow:hidden; }
+.notification-item { box-shadow:0 3px 12px rgba(70,48,28,.035); transition:background .15s ease,border-color .15s ease; }
+.notification-new { white-space:nowrap; font-size:11px; color:#8a5a26; font-weight:700; background:#f8e6ce; border-radius:999px; padding:3px 9px; }
+#pdfCanvasContainer canvas { max-width:100%; height:auto; }
+@media (max-width:768px) { :root { --sidebar-w:280px; } .page-banner { border-radius:14px; } .content-card { padding:15px; } }

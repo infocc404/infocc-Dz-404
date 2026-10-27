@@ -98,8 +98,30 @@ function getSubjectObj(id) {
   };
 }
 
+// Repair common UTF-8 text that was accidentally decoded as Windows-1252/Latin-1.
+// This fixes legacy notification titles such as "Ø¥Ø¹Ù„Ø§Ù† ..." at display time
+// without modifying the stored database values.
+function repairMojibake(value) {
+  if (value === null || value === undefined) return "";
+  const input = String(value);
+  if (!/[ÃØÙÐ][\u0080-\u00ff]|[ØÙ][\u0080-\u00ff]|Ø|Ù/.test(input)) return input;
+  const cp1252 = {0x20AC:0x80,0x201A:0x82,0x0192:0x83,0x201E:0x84,0x2026:0x85,0x2020:0x86,0x2021:0x87,0x02C6:0x88,0x2030:0x89,0x0160:0x8A,0x2039:0x8B,0x0152:0x8C,0x017D:0x8E,0x2018:0x91,0x2019:0x92,0x201C:0x93,0x201D:0x94,0x2022:0x95,0x2013:0x96,0x2014:0x97,0x02DC:0x98,0x2122:0x99,0x0161:0x9A,0x203A:0x9B,0x0153:0x9C,0x017E:0x9E,0x0178:0x9F};
+  try {
+    const bytes = [];
+    for (const ch of input) {
+      const cp = ch.codePointAt(0);
+      if (cp <= 255) bytes.push(cp);
+      else if (cp1252[cp] !== undefined) bytes.push(cp1252[cp]);
+      else return input;
+    }
+    const fixed = new TextDecoder("utf-8", { fatal: true }).decode(new Uint8Array(bytes));
+    return /[\u0600-\u06FF]/.test(fixed) && !/[�]/.test(fixed) ? fixed : input;
+  } catch (_) { return input; }
+}
+
 // XSS Sanitizer
 function escapeHtml(str) {
+  str = repairMojibake(str);
   if (str === null || str === undefined) return "";
   return String(str)
     .replace(/&/g, "&amp;")
@@ -656,7 +678,7 @@ function renderApp() {
 
           <div class="topbar-right-info">
             <button type="button" id="notificationBellBtn" class="notification-bell" aria-label="الإشعارات" title="الإشعارات" style="position:relative;border:1px solid #e2d2bf;background:#fffaf3;color:#684b32;border-radius:12px;padding:9px 12px;cursor:pointer;font:inherit;min-width:44px;">
-              <span aria-hidden="true" style="font-size:18px;line-height:1;">♧</span><span id="notificationUnreadCount" style="display:none;position:absolute;top:-6px;left:-6px;background:#a33b2f;color:white;border-radius:20px;min-width:18px;height:18px;padding:0 4px;font-size:11px;line-height:18px;text-align:center;"></span>
+              <span aria-hidden="true" style="font-size:18px;line-height:1;">🔔</span><span id="notificationUnreadCount" style="display:none;position:absolute;top:-6px;left:-6px;background:#a33b2f;color:white;border-radius:20px;min-width:18px;height:18px;padding:0 4px;font-size:11px;line-height:18px;text-align:center;"></span>
             </button>
             <span class="role-badge ${state.role}">
               ${getRoleBadgeText(state.role, state.uploaderGroup)}
@@ -863,16 +885,16 @@ async function moveFileToGroup(file, targetGroup) {
 // Internal notifications. Requires migration_notifications_adminlog.sql to be applied once.
 async function loadMyNotifications() {
   if (!state.user?.id) return [];
-  const { data, error } = await supabase.from("user_notifications")
-    .select("id,title,body,kind,link,created_at,read_at")
-    .eq("user_id", state.user.id).order("created_at", { ascending: false }).limit(100);
+  const { data, error } = await supabase.from("notifications")
+    .select("id,title,body,type,target_url,created_at,read_at")
+    .eq("recipient_user_id", state.user.id).order("created_at", { ascending: false }).limit(100);
   if (error) { console.warn("Notifications are unavailable; apply migration_notifications_adminlog.sql", error.message); return null; }
-  return data || [];
+  return (data || []).map(n => ({ ...n, title: repairMojibake(n.title), body: repairMojibake(n.body), link: n.target_url || "#/" }));
 }
 async function refreshNotificationBadge() {
   const badge = document.getElementById("notificationUnreadCount");
   if (!badge || !state.user?.id) return;
-  const { count, error } = await supabase.from("user_notifications").select("id", { count: "exact", head: true }).eq("user_id", state.user.id).is("read_at", null);
+  const { count, error } = await supabase.from("notifications").select("id", { count: "exact", head: true }).eq("recipient_user_id", state.user.id).is("read_at", null);
   if (error) { badge.style.display = "none"; return; }
   badge.textContent = count > 99 ? "99+" : String(count || 0);
   badge.style.display = count > 0 ? "inline-block" : "none";
@@ -882,24 +904,24 @@ async function renderNotificationsView(page) {
     <section class="content-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px"><h3 style="margin:0;color:var(--brown-dark)">آخر الإشعارات</h3><button type="button" id="markAllNotificationsRead" class="btn-secondary" style="width:auto">تحديد الكل كمقروء</button></div><div id="notificationsList" style="display:grid;gap:10px"><p>جارٍ تحميل الإشعارات...</p></div></section>`;
   const listEl = page.querySelector("#notificationsList");
   const items = await loadMyNotifications();
-  if (items === null) { listEl.innerHTML = `<p style="line-height:1.9">لم يتم تفعيل جدول الإشعارات في قاعدة البيانات بعد. طبّق ملف <code>migration_notifications_adminlog.sql</code> في SQL Editor داخل مشروع Supabase الحالي، ثم أعد تحميل الصفحة.</p>`; page.querySelector("#markAllNotificationsRead").disabled = true; return; }
-  listEl.innerHTML = items.length ? items.map(n => `<article style="padding:14px;border:1px solid ${n.read_at?'#e8dfd4':'#d8b98f'};border-radius:12px;background:${n.read_at?'#fff':'#fffaf1'}"><div style="display:flex;gap:10px;justify-content:space-between;align-items:start"><strong>${escapeHtml(n.title || 'إشعار')}</strong>${n.read_at?'':'<span style="font-size:11px;color:#8a5a26;font-weight:700">جديد</span>'}</div><p style="white-space:pre-wrap;line-height:1.8;margin:8px 0;color:#51483e">${escapeHtml(n.body || '')}</p><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><small style="color:var(--muted)">${escapeHtml(n.created_at ? new Date(n.created_at).toLocaleString('ar') : '')}</small><div style="display:flex;gap:8px">${n.link?`<button class="btn-secondary notification-open" data-id="${escapeHtml(n.id)}" data-link="${escapeHtml(n.link)}" style="width:auto">فتح</button>`:''}${n.read_at?'':`<button class="btn-secondary notification-read" data-id="${escapeHtml(n.id)}" style="width:auto">تحديد كمقروء</button>`}</div></div></article>`).join("") : `<p style="text-align:center;padding:24px;color:var(--muted)">لا توجد إشعارات حتى الآن.</p>`;
+  if (items === null) { listEl.innerHTML = `<p style="line-height:1.9">لم يتم العثور على جدول الإشعارات أو لا تسمح الصلاحيات بقراءته. تأكد من تطبيق <code>migration_notifications_adminlog.sql</code> في مشروع Supabase الصحيح.</p>`; page.querySelector("#markAllNotificationsRead").disabled = true; return; }
+  listEl.innerHTML = items.length ? items.map(n => `<article class="notification-item" style="padding:14px;border:1px solid ${n.read_at?'#e8dfd4':'#d8b98f'};border-radius:14px;background:${n.read_at?'#fff':'#fffaf1'}"><div style="display:flex;gap:10px;justify-content:space-between;align-items:start"><strong>${escapeHtml(n.title || 'إشعار')}</strong>${n.read_at?'':'<span class="notification-new">جديد</span>'}</div><p style="white-space:pre-wrap;line-height:1.8;margin:8px 0;color:#51483e">${escapeHtml(n.body || '')}</p><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><small style="color:var(--muted)">${escapeHtml(n.created_at ? new Date(n.created_at).toLocaleString('ar') : '')}</small><div style="display:flex;gap:8px">${n.link?`<button class="btn-secondary notification-open" data-id="${escapeHtml(n.id)}" data-link="${escapeHtml(n.link)}" style="width:auto">فتح</button>`:''}${n.read_at?'':`<button class="btn-secondary notification-read" data-id="${escapeHtml(n.id)}" style="width:auto">تحديد كمقروء</button>`}</div></div></article>`).join("") : `<p style="text-align:center;padding:24px;color:var(--muted)">لا توجد إشعارات حتى الآن.</p>`;
   page.querySelectorAll(".notification-read").forEach(btn => btn.addEventListener("click", async () => {
-    const { error } = await supabase.from("user_notifications").update({ read_at: new Date().toISOString() }).eq("id", btn.dataset.id).eq("user_id", state.user.id);
-    if (error) { alert("تعذر تحديث الإشعار. تحقق من تطبيق migration_notifications_adminlog.sql."); return; }
-    renderNotificationsView(page); refreshNotificationBadge();
+    const { error } = await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("id", btn.dataset.id).eq("recipient_user_id", state.user.id);
+    if (error) { alert("تعذر تحديث الإشعار. تحقق من سياسات جدول notifications في Supabase."); return; }
+    await renderNotificationsView(page); await refreshNotificationBadge();
   }));
   page.querySelectorAll(".notification-open").forEach(btn => btn.addEventListener("click", async () => {
-    await supabase.from("user_notifications").update({ read_at: new Date().toISOString() }).eq("id", btn.dataset.id).eq("user_id", state.user.id);
-    const link = btn.dataset.link || "";
+    await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("id", btn.dataset.id).eq("recipient_user_id", state.user.id);
+    const link = btn.dataset.link || "#/";
     if (link.startsWith("#/")) location.hash = link;
     else if (link === "announcements") location.hash = "#/announcements";
     else location.hash = "#/";
   }));
   page.querySelector("#markAllNotificationsRead").onclick = async () => {
-    const { error } = await supabase.from("user_notifications").update({ read_at: new Date().toISOString() }).eq("user_id", state.user.id).is("read_at", null);
+    const { error } = await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("recipient_user_id", state.user.id).is("read_at", null);
     if (error) { alert("تعذر تحديث الإشعارات."); return; }
-    await renderNotificationsView(page); refreshNotificationBadge();
+    await renderNotificationsView(page); await refreshNotificationBadge();
   };
   refreshNotificationBadge();
 }
@@ -2338,8 +2360,8 @@ async function loadPdfWithPdfJs(pdfUrl) {
       if (token !== renderToken) return;
       const viewport = page.getViewport({ scale: entry.cssScale });
       // Sharpness: at least 2x, up to 3x; capped so mobile browsers keep the canvas.
-      let outScale = Math.min(Math.max(window.devicePixelRatio || 1, 2), 3);
-      const maxPixels = 16000000;
+      let outScale = Math.min(Math.max(window.devicePixelRatio || 1, 1.5), 2);
+      const maxPixels = 10000000;
       while (viewport.width * viewport.height * outScale * outScale > maxPixels && outScale > 1) {
         outScale -= 0.25;
       }
@@ -2386,20 +2408,35 @@ async function loadPdfWithPdfJs(pdfUrl) {
       }
     }, { root: container, rootMargin: "800px 0px" });
 
-    for (let n = 1; n <= total; n++) {
-      const page = n === 1 ? first : await pdfDoc.getPage(n);
-      if (token !== renderToken) return;
-      const vp = page.getViewport({ scale: cssScale });
-      const el = document.createElement("div");
-      el.dataset.index = String(n - 1);
-      el.style.cssText = `width:${Math.floor(vp.width)}px;height:${Math.floor(vp.height)}px;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.35);flex:0 0 auto;`;
-      pagesBox.appendChild(el);
-      const entry = { num: n, el, cssScale, rendered: false };
-      pageEls.push(entry);
-      observer.observe(el);
-    }
+    // Paint the first page immediately; fetch the remaining page dimensions in parallel
+    // so opening a long PDF does not wait for every page sequentially.
+    const firstVp = first.getViewport({ scale: cssScale });
+    const firstEl = document.createElement("div");
+    firstEl.dataset.index = "0";
+    firstEl.style.cssText = `width:${Math.floor(firstVp.width)}px;height:${Math.floor(firstVp.height)}px;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.18);flex:0 0 auto;`;
+    pagesBox.appendChild(firstEl);
+    pageEls.push({ num: 1, el: firstEl, cssScale, rendered: false });
+    observer.observe(firstEl);
+    renderPage(pageEls[0], token);
     if (zoomLabel) zoomLabel.textContent = `${Math.round(zoom * 100)}%`;
     updateIndicator(1);
+
+    Promise.all(Array.from({ length: Math.max(0, total - 1) }, (_, i) => pdfDoc.getPage(i + 2)))
+      .then((remainingPages) => {
+        if (token !== renderToken) return;
+        remainingPages.forEach((page, i) => {
+          const n = i + 2;
+          const vp = page.getViewport({ scale: cssScale });
+          const el = document.createElement("div");
+          el.dataset.index = String(n - 1);
+          el.style.cssText = `width:${Math.floor(vp.width)}px;height:${Math.floor(vp.height)}px;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.18);flex:0 0 auto;`;
+          pagesBox.appendChild(el);
+          const entry = { num: n, el, cssScale, rendered: false };
+          pageEls.push(entry);
+          observer.observe(el);
+        });
+      })
+      .catch((err) => console.warn("Some PDF pages are taking longer to load:", err));
   }
 
   function currentPage() {
