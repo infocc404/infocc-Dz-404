@@ -2,7 +2,7 @@
 // Service Worker — info cc 404 (Network-First)
 // ============================================================================
 
-const CACHE_NAME = "info-cc-404-v14";
+const CACHE_NAME = "info-cc-404-v15";
 
 const STATIC_ASSETS = [
   "./",
