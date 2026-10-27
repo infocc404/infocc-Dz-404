@@ -18,7 +18,10 @@ drop policy if exists "Users read own notifications" on public.user_notification
 create policy "Users read own notifications" on public.user_notifications for select to authenticated using (user_id = auth.uid());
 drop policy if exists "Users update own notifications" on public.user_notifications;
 create policy "Users update own notifications" on public.user_notifications for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
--- No client insert/delete policy: trusted database triggers or privileged server code should create notifications.
+drop policy if exists "Users delete own notifications" on public.user_notifications;
+create policy "Users delete own notifications" on public.user_notifications for delete to authenticated using (user_id = auth.uid());
+grant select, update, delete on public.user_notifications to authenticated;
+-- Clients can only read, mark read, or delete their own notifications; inserts remain restricted to trusted database triggers.
 
 create table if not exists public.notification_preferences (
   user_id uuid primary key references auth.users(id) on delete cascade,

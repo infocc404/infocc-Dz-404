@@ -610,28 +610,28 @@ function renderApp() {
       <!-- Right Sidebar -->
       <aside id="appSidebar" class="app-sidebar">
         <div class="sidebar-header">
-          <span class="logo-badge-small mono">404</span>
-          <span class="sidebar-brand-name mono">info_cc_404</span>
+          <span class="sidebar-cap-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 9 12 4l10 5-10 5L2 9Z"/><path d="M6 11v5c3.8 3 8.2 3 12 0v-5M22 9v6"/></svg></span>
+          <span class="sidebar-brand-name"><bdi>info cc 404</bdi><small>منصة طلبة الإعلام الآلي</small></span>
         </div>
 
         <nav class="sidebar-nav">
           <a href="#/" class="nav-link ${hash === "#/" ? "active" : ""}">
-            <span>الرئيسية</span>
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7h-6v7H4a1 1 0 0 1-1-1z"/></svg><span>الرئيسية</span>
           </a>
           <a href="#/announcements" class="nav-link ${hash === "#/announcements" ? "active" : ""}">
-            <span>الإعلانات</span>
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l9 4V6l-9 4zM8 14l2 6h3l-2-5M19 9a4 4 0 0 1 0 6"/></svg><span>الإعلانات</span>
           </a>
-          <a href="#/search" class="nav-link ${hash === "#/search" ? "active" : ""}"><span>البحث عن الملفات</span></a>
-          <a href="#/favorites" class="nav-link ${hash === "#/favorites" ? "active" : ""}"><span>ملفاتي المفضلة</span></a>
-          <a href="#/support" class="nav-link ${hash === "#/support" ? "active" : ""}"><span>الإبلاغ عن مشكلة</span></a>
+          <a href="#/search" class="nav-link ${hash === "#/search" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><span>ملفاتي والبحث</span></a>
+          <a href="#/favorites" class="nav-link ${hash === "#/favorites" ? "active" : ""}><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v14H4zM8 3h8v3H8zM8 10h8M8 14h6"/></svg><span>ملفاتي المفضلة</span></a>
+          <a href="#/support" class="nav-link ${hash === "#/support" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg><span>الإبلاغ عن مشكلة</span></a>
           <a href="#/groupes" class="nav-link ${hash.startsWith("#/groupe") ? "active" : ""}">
-            <span>الأفواج</span>
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v15H4zM8 3v4M16 3v4M4 9h16M8 13h3M8 16h7"/></svg><span>المواد والأفواج</span>
           </a>
           <a href="#/horaire" class="nav-link ${hash === "#/horaire" ? "active" : ""}">
-            <span>الجدول الزمني</span>
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 9h16M8 13h2M13 13h3M8 16h2"/></svg><span>الجدول الزمني</span>
           </a>
           <a href="#/teachers" class="nav-link ${hash.startsWith("#/teacher") ? "active" : ""}">
-            <span>الأساتذة</span>
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 20v-1.4A4.6 4.6 0 0 1 8.1 14h1.8a4.6 4.6 0 0 1 4.6 4.6V20zM16 5.5a3 3 0 0 1 0 5.8M17 14a4.3 4.3 0 0 1 3.5 4.2V20h-3"/></svg><span>الأساتذة</span>
           </a>
           ${
             isOwner || isAdmin || isUploader
@@ -648,8 +648,11 @@ function renderApp() {
               : ""
           }
           ${isOwner ? `<a href="#/owner-users" class="nav-link ${hash === "#/owner-users" ? "active" : ""}"><span>لوحة المالك</span></a>` : ""}
+          <a href="#/notifications" class="nav-link ${hash === "#/notifications" ? "active" : ""}">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span>الإشعارات</span><span class="nav-notification-dot" id="sidebarNotificationUnread" hidden></span>
+          </a>
           <a href="#/compte" class="nav-link ${hash === "#/compte" ? "active" : ""}">
-            <span>حسابي</span>
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>حسابي</span>
           </a>
         </nav>
 
@@ -678,7 +681,7 @@ function renderApp() {
 
           <div class="topbar-right-info">
             <button type="button" id="notificationBellBtn" class="notification-bell" aria-label="الإشعارات" title="الإشعارات" style="position:relative;border:1px solid #e2d2bf;background:#fffaf3;color:#684b32;border-radius:12px;padding:9px 12px;cursor:pointer;font:inherit;min-width:44px;">
-              <span aria-hidden="true" style="font-size:18px;line-height:1;">🔔</span><span id="notificationUnreadCount" style="display:none;position:absolute;top:-6px;left:-6px;background:#a33b2f;color:white;border-radius:20px;min-width:18px;height:18px;padding:0 4px;font-size:11px;line-height:18px;text-align:center;"></span>
+              <svg class="bell-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span id="notificationUnreadCount" style="display:none;position:absolute;top:-6px;left:-6px;background:#a33b2f;color:white;border-radius:20px;min-width:18px;height:18px;padding:0 4px;font-size:11px;line-height:18px;text-align:center;"></span>
             </button>
             <span class="role-badge ${state.role}">
               ${getRoleBadgeText(state.role, state.uploaderGroup)}
@@ -885,41 +888,55 @@ async function moveFileToGroup(file, targetGroup) {
 // Internal notifications. Requires migration_notifications_adminlog.sql to be applied once.
 async function loadMyNotifications() {
   if (!state.user?.id) return [];
-  const { data, error } = await supabase.from("notifications")
-    .select("id,title,body,type,target_url,created_at,read_at")
-    .eq("recipient_user_id", state.user.id).order("created_at", { ascending: false }).limit(100);
+  const { data, error } = await supabase.from("user_notifications")
+    .select("id,title,body,kind,link,created_at,read_at")
+    .eq("user_id", state.user.id).order("created_at", { ascending: false }).limit(100);
   if (error) { console.warn("Notifications are unavailable; apply migration_notifications_adminlog.sql", error.message); return null; }
-  return (data || []).map(n => ({ ...n, title: repairMojibake(n.title), body: repairMojibake(n.body), link: n.target_url || "#/" }));
+  return (data || []).map(n => ({ ...n, title: repairMojibake(n.title), body: repairMojibake(n.body), link: n.link || "#/" }));
 }
 async function refreshNotificationBadge() {
   const badge = document.getElementById("notificationUnreadCount");
-  if (!badge || !state.user?.id) return;
-  const { count, error } = await supabase.from("notifications").select("id", { count: "exact", head: true }).eq("recipient_user_id", state.user.id).is("read_at", null);
-  if (error) { badge.style.display = "none"; return; }
-  badge.textContent = count > 99 ? "99+" : String(count || 0);
-  badge.style.display = count > 0 ? "inline-block" : "none";
+  const sideDot = document.getElementById("sidebarNotificationUnread");
+  if (!state.user?.id) return;
+  const { count, error } = await supabase.from("user_notifications").select("id", { count: "exact", head: true }).eq("user_id", state.user.id).is("read_at", null);
+  if (error) { if (badge) badge.style.display = "none"; if (sideDot) sideDot.hidden = true; return; }
+  if (badge) { badge.textContent = count > 99 ? "99+" : String(count || 0); badge.style.display = count > 0 ? "inline-block" : "none"; }
+  if (sideDot) sideDot.hidden = !(count > 0);
 }
 async function renderNotificationsView(page) {
   page.innerHTML = `<div class="page-banner"><h2>الإشعارات</h2><p>تابع آخر التنبيهات والتحديثات الخاصة بحسابك.</p></div>
-    <section class="content-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px"><h3 style="margin:0;color:var(--brown-dark)">آخر الإشعارات</h3><button type="button" id="markAllNotificationsRead" class="btn-secondary" style="width:auto">تحديد الكل كمقروء</button></div><div id="notificationsList" style="display:grid;gap:10px"><p>جارٍ تحميل الإشعارات...</p></div></section>`;
+    <section class="content-card"><div class="notifications-toolbar"><h3>آخر الإشعارات</h3><div class="notifications-actions"><button type="button" id="markAllNotificationsRead" class="btn-secondary">تحديد الكل كمقروء</button><button type="button" id="deleteSelectedNotifications" class="btn-danger-soft" disabled>حذف المحدد</button></div></div><p class="notifications-help">ضع علامة بجانب الإشعار الذي تريد حذفه، ثم اضغط «حذف المحدد».</p><div id="notificationsList" class="notifications-list"><p>جارٍ تحميل الإشعارات...</p></div></section>`;
   const listEl = page.querySelector("#notificationsList");
   const items = await loadMyNotifications();
-  if (items === null) { listEl.innerHTML = `<p style="line-height:1.9">لم يتم العثور على جدول الإشعارات أو لا تسمح الصلاحيات بقراءته. تأكد من تطبيق <code>migration_notifications_adminlog.sql</code> في مشروع Supabase الصحيح.</p>`; page.querySelector("#markAllNotificationsRead").disabled = true; return; }
-  listEl.innerHTML = items.length ? items.map(n => `<article class="notification-item" style="padding:14px;border:1px solid ${n.read_at?'#e8dfd4':'#d8b98f'};border-radius:14px;background:${n.read_at?'#fff':'#fffaf1'}"><div style="display:flex;gap:10px;justify-content:space-between;align-items:start"><strong>${escapeHtml(n.title || 'إشعار')}</strong>${n.read_at?'':'<span class="notification-new">جديد</span>'}</div><p style="white-space:pre-wrap;line-height:1.8;margin:8px 0;color:#51483e">${escapeHtml(n.body || '')}</p><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><small style="color:var(--muted)">${escapeHtml(n.created_at ? new Date(n.created_at).toLocaleString('ar') : '')}</small><div style="display:flex;gap:8px">${n.link?`<button class="btn-secondary notification-open" data-id="${escapeHtml(n.id)}" data-link="${escapeHtml(n.link)}" style="width:auto">فتح</button>`:''}${n.read_at?'':`<button class="btn-secondary notification-read" data-id="${escapeHtml(n.id)}" style="width:auto">تحديد كمقروء</button>`}</div></div></article>`).join("") : `<p style="text-align:center;padding:24px;color:var(--muted)">لا توجد إشعارات حتى الآن.</p>`;
+  if (items === null) { listEl.innerHTML = `<p style="line-height:1.9">لم يتم العثور على جدول الإشعارات أو لا تسمح الصلاحيات بقراءته. تأكد من تطبيق <code>migration_notifications_adminlog.sql</code> في مشروع Supabase الصحيح.</p>`; page.querySelector("#markAllNotificationsRead").disabled = true; page.querySelector("#deleteSelectedNotifications").disabled = true; return; }
+  listEl.innerHTML = items.length ? items.map(n => `<article class="notification-item ${n.read_at ? 'is-read' : 'is-unread'}"><label class="notification-select" title="تحديد الإشعار للحذف"><input type="checkbox" class="notification-select-check" value="${escapeHtml(n.id)}" aria-label="تحديد الإشعار ${escapeHtml(n.title || '')}"><span></span></label><div class="notification-content"><div class="notification-heading"><strong>${escapeHtml(n.title || 'إشعار')}</strong>${n.read_at ? '' : '<span class="notification-new">جديد</span>'}</div><p class="notification-body">${escapeHtml(n.body || '')}</p><div class="notification-footer"><small>${escapeHtml(n.created_at ? new Date(n.created_at).toLocaleString('ar') : '')}</small><div class="notification-row-actions">${n.link ? `<button class="btn-secondary notification-open" data-id="${escapeHtml(n.id)}" data-link="${escapeHtml(n.link)}">فتح</button>` : ''}${n.read_at ? '' : `<button class="btn-secondary notification-read" data-id="${escapeHtml(n.id)}">تحديد كمقروء</button>`}</div></div></div></article>`).join("") : `<p class="empty-state">لا توجد إشعارات حتى الآن.</p>`;
+  const deleteBtn = page.querySelector("#deleteSelectedNotifications");
+  const checkboxes = [...page.querySelectorAll(".notification-select-check")];
+  const updateDeleteState = () => { deleteBtn.disabled = !checkboxes.some(c => c.checked); };
+  checkboxes.forEach(c => c.addEventListener("change", updateDeleteState));
+  deleteBtn.onclick = async () => {
+    const ids = checkboxes.filter(c => c.checked).map(c => c.value);
+    if (!ids.length) return;
+    if (!confirm(`هل تريد حذف ${ids.length} من الإشعارات المحددة؟`)) return;
+    deleteBtn.disabled = true; deleteBtn.textContent = "جارٍ الحذف...";
+    const { error } = await supabase.from("user_notifications").delete().in("id", ids).eq("user_id", state.user.id);
+    if (error) { alert("تعذر حذف الإشعارات. تأكد من تطبيق تحديث صلاحيات الحذف الموجود في ملف migration_notifications_adminlog.sql."); deleteBtn.textContent = "حذف المحدد"; updateDeleteState(); return; }
+    await renderNotificationsView(page); await refreshNotificationBadge();
+  };
   page.querySelectorAll(".notification-read").forEach(btn => btn.addEventListener("click", async () => {
-    const { error } = await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("id", btn.dataset.id).eq("recipient_user_id", state.user.id);
-    if (error) { alert("تعذر تحديث الإشعار. تحقق من سياسات جدول notifications في Supabase."); return; }
+    const { error } = await supabase.from("user_notifications").update({ read_at: new Date().toISOString() }).eq("id", btn.dataset.id).eq("user_id", state.user.id);
+    if (error) { alert("تعذر تحديث الإشعار. تحقق من سياسات جدول user_notifications في Supabase."); return; }
     await renderNotificationsView(page); await refreshNotificationBadge();
   }));
   page.querySelectorAll(".notification-open").forEach(btn => btn.addEventListener("click", async () => {
-    await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("id", btn.dataset.id).eq("recipient_user_id", state.user.id);
+    await supabase.from("user_notifications").update({ read_at: new Date().toISOString() }).eq("id", btn.dataset.id).eq("user_id", state.user.id);
     const link = btn.dataset.link || "#/";
     if (link.startsWith("#/")) location.hash = link;
     else if (link === "announcements") location.hash = "#/announcements";
     else location.hash = "#/";
   }));
   page.querySelector("#markAllNotificationsRead").onclick = async () => {
-    const { error } = await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("recipient_user_id", state.user.id).is("read_at", null);
+    const { error } = await supabase.from("user_notifications").update({ read_at: new Date().toISOString() }).eq("user_id", state.user.id).is("read_at", null);
     if (error) { alert("تعذر تحديث الإشعارات."); return; }
     await renderNotificationsView(page); await refreshNotificationBadge();
   };
@@ -1107,125 +1124,64 @@ function renderAccessDenied(page) {
 // 12. PAGE: HOME (#/)
 function renderHomeView(page) {
   const sg = state.studentGroup;
-  const recentFiles = getAccessibleFiles().slice(0, 5);
-
+  const userLabel = state.user.email?.split("@")[0] || "طالب";
+  const cards = [
+    { href: "#/search", icon: "file", title: "ملفاتي", desc: "وصول سريع إلى ملفاتك الدراسية", tint: "sand" },
+    { href: "#/teachers", icon: "users", title: "الأساتذة", desc: "قائمة الأساتذة ومعلوماتهم", tint: "green" },
+    { href: "#/horaire", icon: "calendar", title: "الجدول الزمني", desc: "مواعيد المحاضرات والحصص", tint: "peach" },
+    { href: "#/groupes", icon: "book", title: "المواد الدراسية", desc: "تصفح المواد حسب الفوج", tint: "blue" },
+    { href: "#/announcements", icon: "megaphone", title: "الإعلانات", desc: "آخر المستجدات والإعلانات المهمة", tint: "rose" },
+    { href: "#/notifications", icon: "bell", title: "الإشعارات", desc: "تنبيهاتك وتحديثات حسابك", tint: "lavender" }
+  ];
+  const icons = {
+    file: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.75h8l4 4v12.5H6z"/><path d="M14 3.75v4h4M9 12h6M9 15.5h6"/></svg>',
+    users: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19v-1.4A4.6 4.6 0 0 1 8.1 13h1.8a4.6 4.6 0 0 1 4.6 4.6V19zM16 5.5a3 3 0 0 1 0 5.8M17 13.5a4.3 4.3 0 0 1 3.5 4.2V19h-3"/></svg>',
+    calendar: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M8 3.5v4M16 3.5v4M4 9.5h16M8 13h2M13 13h3M8 16.5h2"/></svg>',
+    book: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A3 3 0 0 1 7 3h5v17H7a3 3 0 0 0-3 1zM20 5.5A3 3 0 0 0 17 3h-5v17h5a3 3 0 0 1 3 1z"/><path d="M7 7h2M15 7h2"/></svg>',
+    megaphone: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l9 4V6l-9 4zM8 14l2 6h3l-2-5M19 9a4 4 0 0 1 0 6"/></svg>',
+    bell: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>'
+  };
   page.innerHTML = `
-    <div class="page-banner">
-      <h2>مرحباً بك، ${escapeHtml(state.user.email?.split("@")[0] || "طالب")}</h2>
-      <p>منصة info cc 404 لمشاركة وتصفح ملفات الإعلام الآلي (الدفعة الأولى).</p>
-    </div>
-
-    <section class="content-card announcements-home-card" style="border:1px solid #e7d6bd;background:linear-gradient(135deg,#fffdf8,#f7eddf);margin-bottom:18px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
-        <div><h3 style="color:var(--brown-dark);font-size:18px;margin-bottom:4px;">الإعلانات والتنبيهات</h3><p style="font-size:12px;color:var(--muted);margin:0;">أهم المستجدات الخاصة بالدراسة</p></div>
-        <a href="#/announcements" class="btn-secondary" style="width:auto;text-decoration:none;">كل الإعلانات</a>
+    <section class="home-hero">
+      <div class="home-hero-copy">
+        <span class="home-eyebrow">منصتك الجامعية في مكان واحد</span>
+        <h1>مرحباً بك في منصة <bdi>info cc 404</bdi></h1>
+        <h2>رحلتك الدراسية تبدأ من هنا</h2>
+        <p>مكتبتك الرقمية لطلبة الإعلام الآلي؛ مكان واحد يجمع ملفاتك الدراسية، والمواد، ومعلومات الأساتذة، والجدول الزمني والإعلانات المهمة، لتصل إلى ما تحتاجه بسهولة ووضوح.</p>
+        <div class="home-hero-meta"><span class="home-meta-dot"></span><span>${sg ? `أنت مسجّل ضمن الفوج G${sg}` : 'أهلاً بك — نتمنى لك فصلاً دراسياً موفقاً'}</span></div>
+        <a href="#/search" class="home-hero-cta">ابدأ التصفح <span aria-hidden="true">←</span></a>
       </div>
-      <div id="homeAnnouncementsList" style="display:grid;gap:10px;"><p style="color:var(--muted);font-size:13px;margin:0;">جارٍ تحميل الإعلانات...</p></div>
+      <div class="home-hero-art" aria-hidden="true">
+        <div class="art-sun"></div><div class="art-leaf leaf-one"></div><div class="art-leaf leaf-two"></div>
+        <div class="art-books book-one"></div><div class="art-books book-two"></div><div class="art-books book-three"></div>
+        <div class="art-laptop"><div class="art-screen"><div class="art-screen-line"></div><div class="art-screen-line short"></div><div class="art-screen-card"></div></div><div class="art-base"></div></div>
+        <div class="art-cup"><span></span></div>
+      </div>
+      <div class="home-hero-signature">بالتوفيق في مسيرتكم الدراسية <span>♥</span></div>
     </section>
 
-    ${!sg && state.role === "student" ? `
-      <div class="content-card" style="border:1px solid var(--brown);background:var(--cream, #fbf7f0);margin-bottom:16px;">
-        <h3 style="font-size:16px;font-weight:700;color:var(--brown-dark);margin-bottom:6px;">لم يتم تعيين فوجك بعد</h3>
-        <p style="font-size:13px;color:var(--muted);line-height:1.8;margin-bottom:12px;">افتح «حسابي»، واختر الفوج الذي تدرس فيه، ثم أرسل طلبًا للإدارة. ستظهر ملفات فوجك بعد موافقة المالك أو المشرف.</p>
-        <a href="#/compte" class="btn-primary" style="display:inline-block;width:auto;text-decoration:none;padding:9px 16px;">اختيار الفوج وإرسال الطلب</a>
+    <section class="home-shortcuts" aria-label="روابط المنصة">
+      ${cards.map(c => `<a href="${c.href}" class="home-feature-card"><span class="home-feature-icon ${c.tint}">${icons[c.icon]}</span><strong>${c.title}</strong><span class="home-feature-desc">${c.desc}</span><span class="home-feature-arrow" aria-hidden="true">←</span></a>`).join('')}
+    </section>
+
+    ${!sg && state.role === 'student' ? `<section class="home-group-notice"><div><strong>لم يتم تعيين فوجك بعد</strong><p>حدّد فوجك من صفحة الحساب وأرسل طلباً للإدارة حتى تظهر لك الملفات الخاصة بفوجك.</p></div><a href="#/compte" class="btn-primary">إعداد حسابي</a></section>` : ''}
+
+    <section class="home-about">
+      <div class="home-about-art" aria-hidden="true"><div class="about-plant"></div><div class="about-book about-book-a"></div><div class="about-book about-book-b"></div><div class="about-cap"><span></span></div></div>
+      <div class="home-about-copy">
+        <span class="home-eyebrow">مصمّمة لاحتياجات الطلبة</span>
+        <h2>لماذا <bdi>info cc 404</bdi>؟</h2>
+        <p>منصة متكاملة موجّهة لطلبة قسم الإعلام الآلي، تساعدك على تنظيم مواردك الدراسية ومتابعة المستجدات دون تشتّت.</p>
+        <div class="home-benefits">
+          <span><i>✓</i> الوصول إلى ملفاتك التعليمية</span><span><i>✓</i> متابعة الإعلانات المهمة</span>
+          <span><i>✓</i> معرفة مواعيد الجدول الزمني</span><span><i>✓</i> العثور على معلومات الأساتذة</span>
+          <span><i>✓</i> تصفح المواد حسب الفوج</span><span><i>✓</i> إدارة حسابك بسهولة</span>
+        </div>
+        <a href="#/groupes" class="home-about-link">استكشف المواد الدراسية <span aria-hidden="true">←</span></a>
       </div>
-    ` : ''}
-
-    <!-- 3 Shortcut Cards -->
-    <div class="welcome-grid">
-      <a href="${sg ? `#/groupe/${sg}` : '#/groupes'}" class="shortcut-card">
-        <div class="title">${sg ? `فوجي (<span class="mono">G${sg}</span>)` : 'الأفواج الدراسية'}</div>
-        <div class="desc">${sg ? 'دروس، أعمال موجهة وتطبيقية خاصة بفوجك.' : 'تصفح المحاضرات والملفات الدراسية.'}</div>
-      </a>
-      <a href="#/groupes" class="shortcut-card">
-        <div class="title">الأفواج</div>
-        <div class="desc">تصفح ملفات وتفاصيل جميع الأفواج من G1 إلى G10.</div>
-      </a>
-      <a href="#/horaire" class="shortcut-card">
-        <div class="title">الجدول الزمني</div>
-        <div class="desc">البرنامج الأسبوعي وتوزيع الحصص والقاعات.</div>
-      </a>
-    </div>
-
-    <div class="welcome-grid" style="margin-top:16px;">
-      <a href="#/search" class="shortcut-card"><div class="title">البحث عن ملف</div><div class="desc">ابحث حسب العنوان أو المادة أو النوع.</div></a>
-      <a href="#/favorites" class="shortcut-card"><div class="title">ملفاتي المفضلة</div><div class="desc">احتفظ بالملفات التي تحتاجها باستمرار.</div></a>
-      <a href="#/support" class="shortcut-card"><div class="title">الإبلاغ عن مشكلة</div><div class="desc">أبلغ عن ملف أو فوج أو مشكلة تقنية.</div></a>
-    </div>
-
-    <!-- Chips G1..G10 -->
-    <div class="content-card">
-      <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 12px; color: var(--brown-dark);">الانتقال المباشر لأي فوج:</h3>
-      <div class="chips-wrap" style="margin-bottom: 0;">
-        ${[1,2,3,4,5,6,7,8,9,10].map(g => `
-          <a href="#/groupe/${g}" class="group-chip-btn ${sg && g === sg ? 'current' : ''}">
-            G${g}${sg && g === sg ? ' فوجك' : ''}
-          </a>
-        `).join("")}
-      </div>
-    </div>
-
-    <!-- آخر ملفات فوجك -->
-    <div class="content-card">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h3 style="font-size: 16px; font-weight: 600; color: var(--brown-dark);">${sg ? `آخر ملفات فوجك (G${sg})` : "آخر الملفات"}</h3>
-        <span style="font-size: 12px; color: var(--muted);"><span class="mono">${recentFiles.length}</span> ملفات معروضة</span>
-      </div>
-
-      ${
-        recentFiles.length === 0
-          ? `<p style="color: var(--muted); text-align: center; padding: 20px;">ما كاين حتى ملف بعد</p>`
-          : `
-            <div class="table-responsive">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>عنوان الملف</th>
-                    <th>المادة</th>
-                    <th>النوع</th>
-                    <th>التاريخ</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${recentFiles.map(f => {
-                    const isNew = isWithinDays(f.created_at, 7);
-                    return `
-                      <tr>
-                        <td>
-                          <strong>${escapeHtml(f.title)}</strong>
-                          ${isNew ? '<span class="badge-new">جديد</span>' : ''}
-                        </td>
-                        <td>${escapeHtml(getSubjectObj(normalizeSubjectId(f.subject)).nameEn || getSubjectObj(normalizeSubjectId(f.subject)).nameFr || f.subject)}</td>
-                        <td><span class="badge-tag">${escapeHtml(f.kind)}</span></td>
-                        <td class="mono" style="font-size: 12px;">${formatDate(f.created_at)}</td>
-                        <td>
-                          <button type="button" class="btn-secondary view-file-btn" data-id="${f.id}" style="padding: 4px 10px; font-size: 12px;">
-                            عرض
-                          </button>
-                        </td>
-                      </tr>
-                    `;
-                  }).join("")}
-                </tbody>
-              </table>
-            </div>
-          `
-      }
-    </div>
+    </section>
+    <footer class="home-footer"><span><bdi>info cc 404</bdi> © ${new Date().getFullYear()} — جميع الحقوق محفوظة</span><span>معاً نحو مستقبل أفضل <b>♥</b></span></footer>
   `;
-
-  page.querySelectorAll(".view-file-btn").forEach(btn => {
-    btn.onclick = () => {
-      const fid = btn.getAttribute("data-id");
-      location.hash = `#/voir/${fid}`;
-    };
-  });
-  loadAnnouncements().then(items => {
-    const box = document.getElementById("homeAnnouncementsList");
-    if (!box) return;
-    box.innerHTML = items.slice(0, 3).length ? items.slice(0, 3).map(renderAnnouncementCard).join("") : '<p style="color:var(--muted);font-size:13px;margin:0;">لا توجد إعلانات حاليًا.</p>';
-  });
 }
 
 function isWithinDays(dateStr, days) {
