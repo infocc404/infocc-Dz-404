@@ -33,7 +33,7 @@
   </script>
 
   <!-- Supabase JS v2 -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
   <!-- Config (MUST be before app.js) -->
   <script src="config.js"></script>
@@ -46,6 +46,41 @@
   <div id="appRoot">
     <div style="padding: 40px; text-align: center; color: #7A6A5C;">جاري التحميل...</div>
   </div>
+
+  <!-- Diagnostics: replace the endless loading screen with a useful error if startup fails. -->
+  <script>
+    (function () {
+      const root = document.getElementById("appRoot");
+      function showStartupError(message) {
+        if (!root) return;
+        const stillLoading = root.textContent && root.textContent.includes("جاري التحميل");
+        if (!stillLoading) return;
+        root.innerHTML = "";
+        const panel = document.createElement("div");
+        panel.dir = "rtl";
+        panel.style.cssText = "max-width:760px;margin:48px auto;padding:24px;border:1px solid #d8b9a1;border-radius:16px;background:#fffaf4;color:#49392e;font:16px/1.9 sans-serif;text-align:right;box-shadow:0 8px 30px #0000000d";
+        const title = document.createElement("h2");
+        title.textContent = "تعذّر تشغيل الموقع";
+        title.style.marginTop = "0";
+        const detail = document.createElement("p");
+        detail.textContent = message || "لم يبدأ ملف app.js أو حدث خطأ أثناء تحميل أحد الملفات.";
+        const steps = document.createElement("p");
+        steps.textContent = "تحقق من أن index.html وapp.js وconfig.js وstyle.css موجودة في جذر مستودع GitHub، ثم افتح أدوات المطور (F12) ← Console لمعرفة الخطأ الأحمر. لم يتم حذف أي بيانات من Supabase.";
+        panel.append(title, detail, steps);
+        root.appendChild(panel);
+      }
+      window.addEventListener("error", function (event) {
+        if (event && event.message) showStartupError("خطأ JavaScript: " + event.message);
+      });
+      window.addEventListener("unhandledrejection", function (event) {
+        const reason = event && event.reason;
+        showStartupError("خطأ أثناء بدء التشغيل: " + (reason && reason.message ? reason.message : String(reason || "غير معروف")));
+      });
+      window.setTimeout(function () {
+        showStartupError("انتهت مهلة بدء التشغيل. قد يكون app.js لم يُحمّل، أو أن اتصال الشبكة/مكتبة Supabase تعذّر تحميله.");
+      }, 15000);
+    })();
+  </script>
 
   <!-- App Entry Script -->
   <script type="module" src="app.js"></script>

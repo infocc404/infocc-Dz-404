@@ -98,8 +98,30 @@ function getSubjectObj(id) {
   };
 }
 
+// Repair common UTF-8 text that was accidentally decoded as Windows-1252/Latin-1.
+// This fixes legacy notification titles such as "Ø¥Ø¹Ù„Ø§Ù† ..." at display time
+// without modifying the stored database values.
+function repairMojibake(value) {
+  if (value === null || value === undefined) return "";
+  const input = String(value);
+  if (!/[ÃØÙÐ][\u0080-\u00ff]|[ØÙ][\u0080-\u00ff]|Ø|Ù/.test(input)) return input;
+  const cp1252 = {0x20AC:0x80,0x201A:0x82,0x0192:0x83,0x201E:0x84,0x2026:0x85,0x2020:0x86,0x2021:0x87,0x02C6:0x88,0x2030:0x89,0x0160:0x8A,0x2039:0x8B,0x0152:0x8C,0x017D:0x8E,0x2018:0x91,0x2019:0x92,0x201C:0x93,0x201D:0x94,0x2022:0x95,0x2013:0x96,0x2014:0x97,0x02DC:0x98,0x2122:0x99,0x0161:0x9A,0x203A:0x9B,0x0153:0x9C,0x017E:0x9E,0x0178:0x9F};
+  try {
+    const bytes = [];
+    for (const ch of input) {
+      const cp = ch.codePointAt(0);
+      if (cp <= 255) bytes.push(cp);
+      else if (cp1252[cp] !== undefined) bytes.push(cp1252[cp]);
+      else return input;
+    }
+    const fixed = new TextDecoder("utf-8", { fatal: true }).decode(new Uint8Array(bytes));
+    return /[\u0600-\u06FF]/.test(fixed) && !/[�]/.test(fixed) ? fixed : input;
+  } catch (_) { return input; }
+}
+
 // XSS Sanitizer
 function escapeHtml(str) {
+  str = repairMojibake(str);
   if (str === null || str === undefined) return "";
   return String(str)
     .replace(/&/g, "&amp;")
@@ -174,6 +196,15 @@ async function fetchRoleAndGroup() {
       state.role = "student";
       state.uploaderGroup = null;
       state.studentGroup = null;
+    }
+    // Explicit fallback: some older my_role deployments may return no assigned group.
+    // Read only the current user's own profile; RLS must enforce user_id = auth.uid().
+    if (state.role === "student" && !state.studentGroup && state.user?.id) {
+      const { data: profile, error: profileError } = await supabase
+        .from("student_profiles").select("group_no").eq("user_id", state.user.id).maybeSingle();
+      if (!profileError && Number(profile?.group_no) >= 1 && Number(profile?.group_no) <= 10) {
+        state.studentGroup = Number(profile.group_no);
+      }
     }
   } catch (err) {
     console.warn("Network or execution error in my_role:", err);
@@ -296,7 +327,7 @@ function translateAuthError(msg) {
 // 7. LOGGED-OUT VIEW RENDERER
 function renderLoggedOut(errorMessage = "", successMessage = "") {
   rootEl.innerHTML = `
-    <div class="auth-container">
+    <div class="auth-container login-page">
       <div class="auth-wrapper">
         <div class="auth-panel-banner">
           <div class="logo-badge mono">info_cc_404</div>
@@ -579,22 +610,28 @@ function renderApp() {
       <!-- Right Sidebar -->
       <aside id="appSidebar" class="app-sidebar">
         <div class="sidebar-header">
-          <span class="logo-badge-small mono">404</span>
-          <span class="sidebar-brand-name mono">info_cc_404</span>
+          <span class="sidebar-cap-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 9 12 4l10 5-10 5L2 9Z"/><path d="M6 11v5c3.8 3 8.2 3 12 0v-5M22 9v6"/></svg></span>
+          <span class="sidebar-brand-name"><bdi>info cc 404</bdi><small>منصة طلبة الإعلام الآلي</small></span>
         </div>
 
         <nav class="sidebar-nav">
           <a href="#/" class="nav-link ${hash === "#/" ? "active" : ""}">
-            <span>الرئيسية</span>
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7h-6v7H4a1 1 0 0 1-1-1z"/></svg><span>الرئيسية</span>
           </a>
+          <a href="#/announcements" class="nav-link ${hash === "#/announcements" ? "active" : ""}">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l9 4V6l-9 4zM8 14l2 6h3l-2-5M19 9a4 4 0 0 1 0 6"/></svg><span>الإعلانات</span>
+          </a>
+          <a href="#/search" class="nav-link ${hash === "#/search" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><span>ملفاتي والبحث</span></a>
+          <a href="#/favorites" class="nav-link ${hash === "#/favorites" ? "active" : ""}><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v14H4zM8 3h8v3H8zM8 10h8M8 14h6"/></svg><span>ملفاتي المفضلة</span></a>
+          <a href="#/support" class="nav-link ${hash === "#/support" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg><span>الإبلاغ عن مشكلة</span></a>
           <a href="#/groupes" class="nav-link ${hash.startsWith("#/groupe") ? "active" : ""}">
-            <span>الأفواج</span>
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v15H4zM8 3v4M16 3v4M4 9h16M8 13h3M8 16h7"/></svg><span>المواد والأفواج</span>
           </a>
           <a href="#/horaire" class="nav-link ${hash === "#/horaire" ? "active" : ""}">
-            <span>الجدول الزمني</span>
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 9h16M8 13h2M13 13h3M8 16h2"/></svg><span>الجدول الزمني</span>
           </a>
           <a href="#/teachers" class="nav-link ${hash.startsWith("#/teacher") ? "active" : ""}">
-            <span>الأساتذة</span>
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 20v-1.4A4.6 4.6 0 0 1 8.1 14h1.8a4.6 4.6 0 0 1 4.6 4.6V20zM16 5.5a3 3 0 0 1 0 5.8M17 14a4.3 4.3 0 0 1 3.5 4.2V20h-3"/></svg><span>الأساتذة</span>
           </a>
           ${
             isOwner || isAdmin || isUploader
@@ -611,8 +648,11 @@ function renderApp() {
               : ""
           }
           ${isOwner ? `<a href="#/owner-users" class="nav-link ${hash === "#/owner-users" ? "active" : ""}"><span>لوحة المالك</span></a>` : ""}
+          <a href="#/notifications" class="nav-link ${hash === "#/notifications" ? "active" : ""}">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span>الإشعارات</span><span class="nav-notification-dot" id="sidebarNotificationUnread" hidden></span>
+          </a>
           <a href="#/compte" class="nav-link ${hash === "#/compte" ? "active" : ""}">
-            <span>حسابي</span>
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>حسابي</span>
           </a>
         </nav>
 
@@ -640,6 +680,9 @@ function renderApp() {
           </div>
 
           <div class="topbar-right-info">
+            <button type="button" id="notificationBellBtn" class="notification-bell" aria-label="الإشعارات" title="الإشعارات" style="position:relative;border:1px solid #e2d2bf;background:#fffaf3;color:#684b32;border-radius:12px;padding:9px 12px;cursor:pointer;font:inherit;min-width:44px;">
+              <svg class="bell-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span id="notificationUnreadCount" style="display:none;position:absolute;top:-6px;left:-6px;background:#a33b2f;color:white;border-radius:20px;min-width:18px;height:18px;padding:0 4px;font-size:11px;line-height:18px;text-align:center;"></span>
+            </button>
             <span class="role-badge ${state.role}">
               ${getRoleBadgeText(state.role, state.uploaderGroup)}
             </span>
@@ -691,6 +734,7 @@ function attachShellEvents() {
   const menuBtn = document.getElementById("mobileMenuBtn");
   const logoutBtn = document.getElementById("sidebarLogoutBtn");
   const avatar = document.getElementById("topbarAvatar");
+  const notificationBell = document.getElementById("notificationBellBtn");
   const searchInput = document.getElementById("topSearchInput");
   const searchDropdown = document.getElementById("searchResultsDropdown");
 
@@ -719,9 +763,11 @@ function attachShellEvents() {
   }
 
   if (avatar) {
-    avatar.onclick = () => {
-      location.hash = "#/compte";
-    };
+    avatar.onclick = () => { location.hash = "#/compte"; };
+  }
+  if (notificationBell) {
+    notificationBell.onclick = () => { location.hash = "#/notifications"; };
+    refreshNotificationBadge();
   }
 
   // Live Search in readable files
@@ -839,6 +885,64 @@ async function moveFileToGroup(file, targetGroup) {
 }
 
 // 11. ROUTE DISPATCHER
+// Internal notifications. Requires migration_notifications_adminlog.sql to be applied once.
+async function loadMyNotifications() {
+  if (!state.user?.id) return [];
+  const { data, error } = await supabase.from("user_notifications")
+    .select("id,title,body,kind,link,created_at,read_at")
+    .eq("user_id", state.user.id).order("created_at", { ascending: false }).limit(100);
+  if (error) { console.warn("Notifications are unavailable; apply migration_notifications_adminlog.sql", error.message); return null; }
+  return (data || []).map(n => ({ ...n, title: repairMojibake(n.title), body: repairMojibake(n.body), link: n.link || "#/" }));
+}
+async function refreshNotificationBadge() {
+  const badge = document.getElementById("notificationUnreadCount");
+  const sideDot = document.getElementById("sidebarNotificationUnread");
+  if (!state.user?.id) return;
+  const { count, error } = await supabase.from("user_notifications").select("id", { count: "exact", head: true }).eq("user_id", state.user.id).is("read_at", null);
+  if (error) { if (badge) badge.style.display = "none"; if (sideDot) sideDot.hidden = true; return; }
+  if (badge) { badge.textContent = count > 99 ? "99+" : String(count || 0); badge.style.display = count > 0 ? "inline-block" : "none"; }
+  if (sideDot) sideDot.hidden = !(count > 0);
+}
+async function renderNotificationsView(page) {
+  page.innerHTML = `<div class="page-banner"><h2>الإشعارات</h2><p>تابع آخر التنبيهات والتحديثات الخاصة بحسابك.</p></div>
+    <section class="content-card"><div class="notifications-toolbar"><h3>آخر الإشعارات</h3><div class="notifications-actions"><button type="button" id="markAllNotificationsRead" class="btn-secondary">تحديد الكل كمقروء</button><button type="button" id="deleteSelectedNotifications" class="btn-danger-soft" disabled>حذف المحدد</button></div></div><p class="notifications-help">ضع علامة بجانب الإشعار الذي تريد حذفه، ثم اضغط «حذف المحدد».</p><div id="notificationsList" class="notifications-list"><p>جارٍ تحميل الإشعارات...</p></div></section>`;
+  const listEl = page.querySelector("#notificationsList");
+  const items = await loadMyNotifications();
+  if (items === null) { listEl.innerHTML = `<p style="line-height:1.9">لم يتم العثور على جدول الإشعارات أو لا تسمح الصلاحيات بقراءته. تأكد من تطبيق <code>migration_notifications_adminlog.sql</code> في مشروع Supabase الصحيح.</p>`; page.querySelector("#markAllNotificationsRead").disabled = true; page.querySelector("#deleteSelectedNotifications").disabled = true; return; }
+  listEl.innerHTML = items.length ? items.map(n => `<article class="notification-item ${n.read_at ? 'is-read' : 'is-unread'}"><label class="notification-select" title="تحديد الإشعار للحذف"><input type="checkbox" class="notification-select-check" value="${escapeHtml(n.id)}" aria-label="تحديد الإشعار ${escapeHtml(n.title || '')}"><span></span></label><div class="notification-content"><div class="notification-heading"><strong>${escapeHtml(n.title || 'إشعار')}</strong>${n.read_at ? '' : '<span class="notification-new">جديد</span>'}</div><p class="notification-body">${escapeHtml(n.body || '')}</p><div class="notification-footer"><small>${escapeHtml(n.created_at ? new Date(n.created_at).toLocaleString('ar') : '')}</small><div class="notification-row-actions">${n.link ? `<button class="btn-secondary notification-open" data-id="${escapeHtml(n.id)}" data-link="${escapeHtml(n.link)}">فتح</button>` : ''}${n.read_at ? '' : `<button class="btn-secondary notification-read" data-id="${escapeHtml(n.id)}">تحديد كمقروء</button>`}</div></div></div></article>`).join("") : `<p class="empty-state">لا توجد إشعارات حتى الآن.</p>`;
+  const deleteBtn = page.querySelector("#deleteSelectedNotifications");
+  const checkboxes = [...page.querySelectorAll(".notification-select-check")];
+  const updateDeleteState = () => { deleteBtn.disabled = !checkboxes.some(c => c.checked); };
+  checkboxes.forEach(c => c.addEventListener("change", updateDeleteState));
+  deleteBtn.onclick = async () => {
+    const ids = checkboxes.filter(c => c.checked).map(c => c.value);
+    if (!ids.length) return;
+    if (!confirm(`هل تريد حذف ${ids.length} من الإشعارات المحددة؟`)) return;
+    deleteBtn.disabled = true; deleteBtn.textContent = "جارٍ الحذف...";
+    const { error } = await supabase.from("user_notifications").delete().in("id", ids).eq("user_id", state.user.id);
+    if (error) { alert("تعذر حذف الإشعارات. تأكد من تطبيق تحديث صلاحيات الحذف الموجود في ملف migration_notifications_adminlog.sql."); deleteBtn.textContent = "حذف المحدد"; updateDeleteState(); return; }
+    await renderNotificationsView(page); await refreshNotificationBadge();
+  };
+  page.querySelectorAll(".notification-read").forEach(btn => btn.addEventListener("click", async () => {
+    const { error } = await supabase.from("user_notifications").update({ read_at: new Date().toISOString() }).eq("id", btn.dataset.id).eq("user_id", state.user.id);
+    if (error) { alert("تعذر تحديث الإشعار. تحقق من سياسات جدول user_notifications في Supabase."); return; }
+    await renderNotificationsView(page); await refreshNotificationBadge();
+  }));
+  page.querySelectorAll(".notification-open").forEach(btn => btn.addEventListener("click", async () => {
+    await supabase.from("user_notifications").update({ read_at: new Date().toISOString() }).eq("id", btn.dataset.id).eq("user_id", state.user.id);
+    const link = btn.dataset.link || "#/";
+    if (link.startsWith("#/")) location.hash = link;
+    else if (link === "announcements") location.hash = "#/announcements";
+    else location.hash = "#/";
+  }));
+  page.querySelector("#markAllNotificationsRead").onclick = async () => {
+    const { error } = await supabase.from("user_notifications").update({ read_at: new Date().toISOString() }).eq("user_id", state.user.id).is("read_at", null);
+    if (error) { alert("تعذر تحديث الإشعارات."); return; }
+    await renderNotificationsView(page); await refreshNotificationBadge();
+  };
+  refreshNotificationBadge();
+}
+
 function dispatchRoute(hash) {
   const page = document.getElementById("pageContent");
   if (!page) return;
@@ -848,6 +952,13 @@ function dispatchRoute(hash) {
     renderHomeView(page);
     return;
   }
+
+  // #/announcements
+  if (hash === "#/announcements") { renderAnnouncementsView(page); return; }
+  if (hash === "#/notifications") { renderNotificationsView(page); return; }
+  if (hash === "#/search") { renderSearchPage(page); return; }
+  if (hash === "#/favorites") { renderFavoritesPage(page); return; }
+  if (hash === "#/support") { renderSupportPage(page); return; }
 
   // #/groupes
   if (hash === "#/groupes") {
@@ -933,6 +1044,73 @@ function dispatchRoute(hash) {
   renderNotFoundView(page);
 }
 
+const ANNOUNCEMENT_PRIORITY = { urgent: 0, important: 1, normal: 2 };
+function canManageAnnouncements() {
+  return ["owner", "admin", "uploader"].includes(state.role);
+}
+async function loadAnnouncements() {
+  try {
+    const { data, error } = await supabase.from("announcements").select("*").order("created_at", { ascending: false });
+    if (error) { console.warn("Announcements unavailable; apply migration_announcements.sql", error.message); return []; }
+    return (data || []).sort((a,b) => (ANNOUNCEMENT_PRIORITY[a.priority] ?? 2) - (ANNOUNCEMENT_PRIORITY[b.priority] ?? 2) || new Date(b.created_at) - new Date(a.created_at));
+  } catch (e) { console.warn("Could not load announcements", e); return []; }
+}
+function renderAnnouncementCard(a, manage=false) {
+  const styles = { urgent: { label: "عاجل", bg: "#fff0ed", color: "#a33b2f", border: "#efb5aa" }, important: { label: "مهم", bg: "#fff5d9", color: "#815b12", border: "#ead18c" }, normal: { label: "عام", bg: "#f5eee4", color: "#72563b", border: "#e3d3bf" } };
+  const st = styles[a.priority] || styles.normal;
+  const date = a.created_at ? new Date(a.created_at).toLocaleDateString("ar") : "";
+  return `<article style="background:#fff;border:1px solid ${st.border};border-right:4px solid ${st.color};border-radius:12px;padding:14px 16px;box-shadow:0 3px 12px #4b34200a;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:7px;"><strong style="color:var(--brown-dark);font-size:15px;">${escapeHtml(a.title || "إعلان")}</strong><span style="font-size:11px;font-weight:700;color:${st.color};background:${st.bg};border-radius:20px;padding:4px 10px;">${st.label}</span></div>
+    <p style="white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.9;color:#51483e;font-size:13px;margin:0 0 8px;">${escapeHtml(a.body || "")}</p>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;"><small style="color:var(--muted);">${escapeHtml(date)}${a.author_label ? " · "+escapeHtml(a.author_label) : ""}</small>${manage ? `<button type="button" class="btn-secondary announcement-delete" data-id="${escapeHtml(a.id)}" style="width:auto;padding:6px 10px;color:#a33b2f;">حذف</button>` : ""}</div>
+  </article>`;
+}
+async function renderAnnouncementsView(page) {
+  const canManage = canManageAnnouncements();
+  page.innerHTML = `<div class="page-banner"><h2>الإعلانات</h2><p>إعلانات الدراسة والتنبيهات، مرتبة حسب الأهمية.</p></div>
+    ${canManage ? `<section class="content-card" style="border:1px solid #e7d6bd;background:#fffdf8;"><h3 style="color:var(--brown-dark);margin-bottom:14px;">إضافة إعلان جديد</h3><form id="announcementForm" style="display:grid;gap:12px;"><label>عنوان الإعلان<input name="title" maxlength="140" required placeholder="مثال: تغيير موعد حصة" style="display:block;width:100%;margin-top:6px;"></label><label>تفاصيل الإعلان<textarea name="body" rows="4" maxlength="5000" required placeholder="اكتب تفاصيل الإعلان هنا..." style="display:block;width:100%;margin-top:6px;resize:vertical;"></textarea></label><label>الأهمية<select name="priority" style="display:block;width:100%;margin-top:6px;"><option value="normal">عادي</option><option value="important">مهم</option><option value="urgent">عاجل</option></select></label><button class="btn-primary" type="submit" style="width:auto;justify-self:start;">نشر الإعلان</button><p id="announcementFormMessage" style="margin:0;font-size:13px;"></p></form></section>` : ""}
+    <section class="content-card"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;"><h3 style="color:var(--brown-dark);margin:0;">قائمة الإعلانات</h3><span id="announcementCount" style="font-size:12px;color:var(--muted);"></span></div><div id="announcementsList" style="display:grid;gap:12px;"><p>جارٍ تحميل الإعلانات...</p></div></section>`;
+  const list = await loadAnnouncements();
+  const listEl = page.querySelector("#announcementsList");
+  const countEl = page.querySelector("#announcementCount");
+  if (!listEl) return;
+  countEl.textContent = `${list.length} إعلان`;
+  listEl.innerHTML = list.length ? list.map(a => renderAnnouncementCard(a, canManage)).join("") : '<p style="text-align:center;color:var(--muted);padding:20px;">لا توجد إعلانات منشورة حاليًا.</p>';
+  if (canManage) {
+    page.querySelector("#announcementForm")?.addEventListener("submit", async e => {
+      e.preventDefault();
+      const form = e.currentTarget; const msg = page.querySelector("#announcementFormMessage");
+      const fd = new FormData(form);
+      const button = form.querySelector('button[type="submit"]'); button.disabled = true; msg.textContent = "جارٍ النشر...";
+      const { error } = await supabase.from("announcements").insert({ title: String(fd.get("title")||"").trim(), body: String(fd.get("body")||"").trim(), priority: String(fd.get("priority")||"normal"), created_by: state.user.id, author_label: state.role === "owner" ? "إدارة المنصة" : state.role === "admin" ? "المشرف" : `رئيس القسم G${state.uploaderGroup || ""}` });
+      button.disabled = false;
+      if (error) { msg.textContent = "تعذر نشر الإعلان. تأكد من تطبيق migration_announcements.sql وصلاحيات Supabase."; msg.style.color = "#a33b2f"; console.error(error); return; }
+      renderAnnouncementsView(page);
+    });
+    page.querySelectorAll(".announcement-delete").forEach(btn => btn.addEventListener("click", async () => {
+      if (!confirm("هل تريد حذف هذا الإعلان؟")) return;
+      const { error } = await supabase.from("announcements").delete().eq("id", btn.dataset.id);
+      if (error) { alert("تعذر حذف الإعلان. تحقق من صلاحيات قاعدة البيانات."); return; }
+      renderAnnouncementsView(page);
+    }));
+  }
+}
+
+// Student productivity tools: full-text file search, personal favorites, and support reports.
+function renderSearchPage(page) {
+  const files = getAccessibleFiles();
+  page.innerHTML = `<div class="page-banner"><h2>البحث عن الملفات</h2><p>ابحث باسم الملف أو المادة أو الأستاذ، وستظهر الملفات المسموح لك بالوصول إليها فقط.</p></div>
+    <section class="content-card"><label for="globalFileSearch" class="form-label">كلمات البحث</label><input id="globalFileSearch" class="form-control" type="search" placeholder="مثال: Analyse، TD، اسم الأستاذ..." autocomplete="off"><div class="filter-row" style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0"><select id="fileKindFilter" class="form-control" style="max-width:220px"><option value="">كل الأنواع</option><option value="cours">Cours</option><option value="td">TD</option><option value="tp">TP</option></select><span id="fileSearchCount" style="align-self:center;color:var(--muted);font-size:13px"></span></div><div id="fileSearchResults" class="search-results-grid"></div></section>`;
+  const input=page.querySelector('#globalFileSearch'), kind=page.querySelector('#fileKindFilter'), results=page.querySelector('#fileSearchResults'), count=page.querySelector('#fileSearchCount');
+  const draw=()=>{const q=input.value.trim().toLocaleLowerCase();const k=kind.value;const filtered=files.filter(f=>{const hay=[f.title,f.subject,f.kind,f.teacher_name,f.name].filter(Boolean).join(' ').toLocaleLowerCase();return (!q||hay.includes(q))&&(!k||String(f.kind).toLowerCase()===k)});count.textContent=`${filtered.length} نتيجة`;results.innerHTML=filtered.length?filtered.slice(0,100).map(f=>`<article class="content-card file-result-card"><strong>${escapeHtml(f.title||'ملف')}</strong><p>${escapeHtml(f.subject||'')} · ${escapeHtml(f.kind||'')} ${f.group_no?`· G${f.group_no}`:'· مشترك'}</p><a class="btn-primary" style="display:inline-block;width:auto;text-decoration:none" href="#/voir/${encodeURIComponent(f.id)}">فتح الملف</a> <button type="button" class="btn-secondary favorite-toggle" data-id="${escapeHtml(f.id)}">☆ حفظ في المفضلة</button></article>`).join(''):'<p class="empty-state">لا توجد ملفات مطابقة.</p>';results.querySelectorAll('.favorite-toggle').forEach(b=>b.onclick=()=>toggleFavorite(b.dataset.id,b));};
+  input.addEventListener('input',draw);kind.addEventListener('change',draw);draw();
+}
+async function loadFavoriteIds(){const {data,error}=await supabase.from('student_favorites').select('file_id').eq('user_id',state.user.id);if(error){console.warn('Favorites unavailable; apply migration_student_tools.sql',error.message);return [];}return (data||[]).map(x=>String(x.file_id));}
+async function toggleFavorite(fileId,button){const {data:existing,error:readError}=await supabase.from('student_favorites').select('file_id').eq('user_id',state.user.id).eq('file_id',String(fileId)).maybeSingle();if(readError){alert('تعذر قراءة المفضلة. تأكد من تطبيق migration_student_tools.sql.');return;}if(existing){const {error}=await supabase.from('student_favorites').delete().eq('user_id',state.user.id).eq('file_id',String(fileId));if(error){alert('تعذر حذف الملف من المفضلة.');return;}if(button)button.textContent='☆ حفظ في المفضلة';}else{const {error}=await supabase.from('student_favorites').insert({user_id:state.user.id,file_id:String(fileId)});if(error){alert('تعذر حفظ الملف في المفضلة. تأكد من تطبيق migration_student_tools.sql.');return;}if(button)button.textContent='★ محفوظ';}}
+async function renderFavoritesPage(page){page.innerHTML='<div class="page-banner"><h2>ملفاتي المفضلة</h2><p>ملفات حفظتها للوصول إليها بسرعة.</p></div><section class="content-card" id="favoritesContent"><p>جارٍ تحميل المفضلة...</p></section>';const box=page.querySelector('#favoritesContent');const ids=await loadFavoriteIds();const accessible=getAccessibleFiles();const files=ids.map(id=>accessible.find(f=>String(f.id)===id)).filter(Boolean);box.innerHTML=files.length?`<div class="favorites-grid">${files.map(f=>`<article class="content-card"><strong>${escapeHtml(f.title||'ملف')}</strong><p>${escapeHtml(f.subject||'')} · ${escapeHtml(f.kind||'')}</p><a class="btn-primary" style="display:inline-block;width:auto;text-decoration:none" href="#/voir/${encodeURIComponent(f.id)}">فتح الملف</a><button class="btn-secondary remove-favorite" data-id="${escapeHtml(f.id)}" style="margin-inline-start:8px">إزالة</button></article>`).join('')}</div>`:'<p class="empty-state">لم تحفظ أي ملف بعد. استخدم زر «حفظ في المفضلة» في صفحة البحث.</p>';box.querySelectorAll('.remove-favorite').forEach(b=>b.onclick=async()=>{await toggleFavorite(b.dataset.id);renderFavoritesPage(page);});}
+function renderSupportPage(page){const staff=['owner','admin'].includes(state.role);page.innerHTML=`<div class="page-banner"><h2>الإبلاغ عن مشكلة</h2><p>أخبرنا عن ملف لا يفتح أو فوج غير صحيح أو مشكلة تقنية.</p></div><section class="content-card"><form id="supportReportForm" style="display:grid;gap:14px;max-width:760px"><label class="form-label">نوع المشكلة<select class="form-control" name="category" required><option value="file">ملف لا يفتح أو عرضه غير سليم</option><option value="group">الفوج غير صحيح أو غير محفوظ</option><option value="account">مشكلة في الحساب أو الدخول</option><option value="other">مشكلة أخرى</option></select></label><label class="form-label">عنوان مختصر<input class="form-control" name="title" maxlength="140" required placeholder="اكتب عنوان المشكلة"></label><label class="form-label">التفاصيل<textarea class="form-control" name="details" rows="5" maxlength="3000" required placeholder="ما الذي حدث؟ وما الصفحة التي كنت تستخدمها؟"></textarea></label><button class="btn-primary" type="submit" style="width:auto;justify-self:start">إرسال البلاغ</button><p id="supportReportMessage" role="status"></p></form></section><section class="content-card" id="supportReportsAdmin" style="display:${staff?'block':'none'}"><h3 style="color:var(--brown-dark);margin-bottom:12px">بلاغات الطلبة</h3><div id="supportReportsList">جارٍ تحميل البلاغات...</div></section>`;page.querySelector('#supportReportForm').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget,fd=new FormData(form),msg=page.querySelector('#supportReportMessage'),btn=form.querySelector('button');btn.disabled=true;msg.textContent='جارٍ إرسال البلاغ...';const {error}=await supabase.from('support_reports').insert({user_id:state.user.id,category:String(fd.get('category')),title:String(fd.get('title')).trim(),details:String(fd.get('details')).trim()});btn.disabled=false;if(error){msg.textContent='تعذر إرسال البلاغ. تأكد من تطبيق migration_student_tools.sql ثم أعد المحاولة.';msg.style.color='#a33b32';console.error(error);return;}form.reset();msg.textContent='تم إرسال البلاغ. شكرًا لمساعدتنا على تحسين الموقع.';msg.style.color='#28734a';};if(staff)loadSupportReports(page);}
+async function loadSupportReports(page){const box=page.querySelector('#supportReportsList');if(!box)return;const {data,error}=await supabase.from('support_reports').select('id,user_id,category,title,details,status,created_at').order('created_at',{ascending:false}).limit(100);if(error){box.innerHTML='<p class="empty-state">تعذر تحميل البلاغات. تحقق من سياسات RLS في migration_student_tools.sql.</p>';console.warn(error);return;}const labels={file:'ملف',group:'فوج',account:'حساب',other:'أخرى',open:'مفتوح',in_progress:'قيد المعالجة',resolved:'تم الحل',closed:'مغلق'};box.innerHTML=data?.length?`<div class="support-report-list">${data.map(r=>`<article class="support-report-item"><div class="support-report-heading"><strong>${escapeHtml(r.title)}</strong><span class="badge-tag">${labels[r.category]||escapeHtml(r.category)}</span></div><p>${escapeHtml(r.details)}</p><small>${formatDate(r.created_at)} · ${labels[r.status]||escapeHtml(r.status)}</small><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><select class="form-control support-status" data-id="${escapeHtml(r.id)}" style="max-width:220px"><option value="open" ${r.status==='open'?'selected':''}>مفتوح</option><option value="in_progress" ${r.status==='in_progress'?'selected':''}>قيد المعالجة</option><option value="resolved" ${r.status==='resolved'?'selected':''}>تم الحل</option><option value="closed" ${r.status==='closed'?'selected':''}>مغلق</option></select><button type="button" class="btn-secondary save-support-status" data-id="${escapeHtml(r.id)}">حفظ الحالة</button></div></article>`).join('')}</div>`:'<p class="empty-state">لا توجد بلاغات بعد.</p>';box.querySelectorAll('.save-support-status').forEach(btn=>btn.onclick=async()=>{const select=box.querySelector(`.support-status[data-id="${btn.dataset.id}"]`);const status=select?.value;const {error}=await supabase.from('support_reports').update({status,...(['resolved','closed'].includes(status)?{resolved_at:new Date().toISOString()}:{resolved_at:null})}).eq('id',btn.dataset.id);if(error){alert('تعذر تحديث حالة البلاغ.');return;}btn.textContent='تم الحفظ';});}
+
 function renderAccessDenied(page) {
   page.innerHTML = `
     <div class="content-card" style="text-align: center; padding: 40px;">
@@ -946,106 +1124,64 @@ function renderAccessDenied(page) {
 // 12. PAGE: HOME (#/)
 function renderHomeView(page) {
   const sg = state.studentGroup;
-  const recentFiles = getAccessibleFiles().slice(0, 5);
-
+  const userLabel = state.user.email?.split("@")[0] || "طالب";
+  const cards = [
+    { href: "#/search", icon: "file", title: "ملفاتي", desc: "وصول سريع إلى ملفاتك الدراسية", tint: "sand" },
+    { href: "#/teachers", icon: "users", title: "الأساتذة", desc: "قائمة الأساتذة ومعلوماتهم", tint: "green" },
+    { href: "#/horaire", icon: "calendar", title: "الجدول الزمني", desc: "مواعيد المحاضرات والحصص", tint: "peach" },
+    { href: "#/groupes", icon: "book", title: "المواد الدراسية", desc: "تصفح المواد حسب الفوج", tint: "blue" },
+    { href: "#/announcements", icon: "megaphone", title: "الإعلانات", desc: "آخر المستجدات والإعلانات المهمة", tint: "rose" },
+    { href: "#/notifications", icon: "bell", title: "الإشعارات", desc: "تنبيهاتك وتحديثات حسابك", tint: "lavender" }
+  ];
+  const icons = {
+    file: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.75h8l4 4v12.5H6z"/><path d="M14 3.75v4h4M9 12h6M9 15.5h6"/></svg>',
+    users: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19v-1.4A4.6 4.6 0 0 1 8.1 13h1.8a4.6 4.6 0 0 1 4.6 4.6V19zM16 5.5a3 3 0 0 1 0 5.8M17 13.5a4.3 4.3 0 0 1 3.5 4.2V19h-3"/></svg>',
+    calendar: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M8 3.5v4M16 3.5v4M4 9.5h16M8 13h2M13 13h3M8 16.5h2"/></svg>',
+    book: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A3 3 0 0 1 7 3h5v17H7a3 3 0 0 0-3 1zM20 5.5A3 3 0 0 0 17 3h-5v17h5a3 3 0 0 1 3 1z"/><path d="M7 7h2M15 7h2"/></svg>',
+    megaphone: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l9 4V6l-9 4zM8 14l2 6h3l-2-5M19 9a4 4 0 0 1 0 6"/></svg>',
+    bell: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>'
+  };
   page.innerHTML = `
-    <div class="page-banner">
-      <h2>مرحباً بك، ${escapeHtml(state.user.email?.split("@")[0] || "طالب")}</h2>
-      <p>منصة info cc 404 لمشاركة وتصفح ملفات الإعلام الآلي (الدفعة الأولى).</p>
-    </div>
-
-    ${!sg && state.role === "student" ? `
-      <div class="content-card" style="border:1px solid var(--brown);background:var(--cream, #fbf7f0);margin-bottom:16px;">
-        <h3 style="font-size:16px;font-weight:700;color:var(--brown-dark);margin-bottom:6px;">لم يتم تعيين فوجك بعد</h3>
-        <p style="font-size:13px;color:var(--muted);line-height:1.8;margin-bottom:12px;">افتح «حسابي»، واختر الفوج الذي تدرس فيه، ثم أرسل طلبًا للإدارة. ستظهر ملفات فوجك بعد موافقة المالك أو المشرف.</p>
-        <a href="#/compte" class="btn-primary" style="display:inline-block;width:auto;text-decoration:none;padding:9px 16px;">اختيار الفوج وإرسال الطلب</a>
+    <section class="home-hero">
+      <div class="home-hero-copy">
+        <span class="home-eyebrow">منصتك الجامعية في مكان واحد</span>
+        <h1>مرحباً بك في منصة <bdi>info cc 404</bdi></h1>
+        <h2>رحلتك الدراسية تبدأ من هنا</h2>
+        <p>مكتبتك الرقمية لطلبة الإعلام الآلي؛ مكان واحد يجمع ملفاتك الدراسية، والمواد، ومعلومات الأساتذة، والجدول الزمني والإعلانات المهمة، لتصل إلى ما تحتاجه بسهولة ووضوح.</p>
+        <div class="home-hero-meta"><span class="home-meta-dot"></span><span>${sg ? `أنت مسجّل ضمن الفوج G${sg}` : 'أهلاً بك — نتمنى لك فصلاً دراسياً موفقاً'}</span></div>
+        <a href="#/search" class="home-hero-cta">ابدأ التصفح <span aria-hidden="true">←</span></a>
       </div>
-    ` : ''}
-
-    <!-- 3 Shortcut Cards -->
-    <div class="welcome-grid">
-      <a href="${sg ? `#/groupe/${sg}` : '#/groupes'}" class="shortcut-card">
-        <div class="title">${sg ? `فوجي (<span class="mono">G${sg}</span>)` : 'الأفواج الدراسية'}</div>
-        <div class="desc">${sg ? 'دروس، أعمال موجهة وتطبيقية خاصة بفوجك.' : 'تصفح المحاضرات والملفات الدراسية.'}</div>
-      </a>
-      <a href="#/groupes" class="shortcut-card">
-        <div class="title">الأفواج</div>
-        <div class="desc">تصفح ملفات وتفاصيل جميع الأفواج من G1 إلى G10.</div>
-      </a>
-      <a href="#/horaire" class="shortcut-card">
-        <div class="title">الجدول الزمني</div>
-        <div class="desc">البرنامج الأسبوعي وتوزيع الحصص والقاعات.</div>
-      </a>
-    </div>
-
-    <!-- Chips G1..G10 -->
-    <div class="content-card">
-      <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 12px; color: var(--brown-dark);">الانتقال المباشر لأي فوج:</h3>
-      <div class="chips-wrap" style="margin-bottom: 0;">
-        ${[1,2,3,4,5,6,7,8,9,10].map(g => `
-          <a href="#/groupe/${g}" class="group-chip-btn ${sg && g === sg ? 'current' : ''}">
-            G${g}${sg && g === sg ? ' فوجك' : ''}
-          </a>
-        `).join("")}
+      <div class="home-hero-art" aria-hidden="true">
+        <div class="art-sun"></div><div class="art-leaf leaf-one"></div><div class="art-leaf leaf-two"></div>
+        <div class="art-books book-one"></div><div class="art-books book-two"></div><div class="art-books book-three"></div>
+        <div class="art-laptop"><div class="art-screen"><div class="art-screen-line"></div><div class="art-screen-line short"></div><div class="art-screen-card"></div></div><div class="art-base"></div></div>
+        <div class="art-cup"><span></span></div>
       </div>
-    </div>
+      <div class="home-hero-signature">بالتوفيق في مسيرتكم الدراسية <span>♥</span></div>
+    </section>
 
-    <!-- آخر ملفات فوجك -->
-    <div class="content-card">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h3 style="font-size: 16px; font-weight: 600; color: var(--brown-dark);">${sg ? `آخر ملفات فوجك (G${sg})` : "آخر الملفات"}</h3>
-        <span style="font-size: 12px; color: var(--muted);"><span class="mono">${recentFiles.length}</span> ملفات معروضة</span>
+    <section class="home-shortcuts" aria-label="روابط المنصة">
+      ${cards.map(c => `<a href="${c.href}" class="home-feature-card"><span class="home-feature-icon ${c.tint}">${icons[c.icon]}</span><strong>${c.title}</strong><span class="home-feature-desc">${c.desc}</span><span class="home-feature-arrow" aria-hidden="true">←</span></a>`).join('')}
+    </section>
+
+    ${!sg && state.role === 'student' ? `<section class="home-group-notice"><div><strong>لم يتم تعيين فوجك بعد</strong><p>حدّد فوجك من صفحة الحساب وأرسل طلباً للإدارة حتى تظهر لك الملفات الخاصة بفوجك.</p></div><a href="#/compte" class="btn-primary">إعداد حسابي</a></section>` : ''}
+
+    <section class="home-about">
+      <div class="home-about-art" aria-hidden="true"><div class="about-plant"></div><div class="about-book about-book-a"></div><div class="about-book about-book-b"></div><div class="about-cap"><span></span></div></div>
+      <div class="home-about-copy">
+        <span class="home-eyebrow">مصمّمة لاحتياجات الطلبة</span>
+        <h2>لماذا <bdi>info cc 404</bdi>؟</h2>
+        <p>منصة متكاملة موجّهة لطلبة قسم الإعلام الآلي، تساعدك على تنظيم مواردك الدراسية ومتابعة المستجدات دون تشتّت.</p>
+        <div class="home-benefits">
+          <span><i>✓</i> الوصول إلى ملفاتك التعليمية</span><span><i>✓</i> متابعة الإعلانات المهمة</span>
+          <span><i>✓</i> معرفة مواعيد الجدول الزمني</span><span><i>✓</i> العثور على معلومات الأساتذة</span>
+          <span><i>✓</i> تصفح المواد حسب الفوج</span><span><i>✓</i> إدارة حسابك بسهولة</span>
+        </div>
+        <a href="#/groupes" class="home-about-link">استكشف المواد الدراسية <span aria-hidden="true">←</span></a>
       </div>
-
-      ${
-        recentFiles.length === 0
-          ? `<p style="color: var(--muted); text-align: center; padding: 20px;">ما كاين حتى ملف بعد</p>`
-          : `
-            <div class="table-responsive">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>عنوان الملف</th>
-                    <th>المادة</th>
-                    <th>النوع</th>
-                    <th>التاريخ</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${recentFiles.map(f => {
-                    const isNew = isWithinDays(f.created_at, 7);
-                    return `
-                      <tr>
-                        <td>
-                          <strong>${escapeHtml(f.title)}</strong>
-                          ${isNew ? '<span class="badge-new">جديد</span>' : ''}
-                        </td>
-                        <td>${escapeHtml(getSubjectObj(normalizeSubjectId(f.subject)).nameEn || getSubjectObj(normalizeSubjectId(f.subject)).nameFr || f.subject)}</td>
-                        <td><span class="badge-tag">${escapeHtml(f.kind)}</span></td>
-                        <td class="mono" style="font-size: 12px;">${formatDate(f.created_at)}</td>
-                        <td>
-                          <button type="button" class="btn-secondary view-file-btn" data-id="${f.id}" style="padding: 4px 10px; font-size: 12px;">
-                            عرض
-                          </button>
-                        </td>
-                      </tr>
-                    `;
-                  }).join("")}
-                </tbody>
-              </table>
-            </div>
-          `
-      }
-    </div>
+    </section>
+    <footer class="home-footer"><span><bdi>info cc 404</bdi> © ${new Date().getFullYear()} — جميع الحقوق محفوظة</span><span>معاً نحو مستقبل أفضل <b>♥</b></span></footer>
   `;
-
-  page.querySelectorAll(".view-file-btn").forEach(btn => {
-    btn.onclick = () => {
-      const fid = btn.getAttribute("data-id");
-      location.hash = `#/voir/${fid}`;
-    };
-  });
 }
 
 function isWithinDays(dateStr, days) {
@@ -2067,21 +2203,18 @@ async function renderPdfViewerView(page, fileId) {
           <button type="button" class="btn-secondary mono" id="pdfZoomIn" title="تكبير" aria-label="تكبير" style="padding: 4px 10px;">+</button>
           <button type="button" class="btn-secondary" id="pdfZoomReset" style="padding: 4px 10px;">الحجم الطبيعي</button>
           <button type="button" class="btn-secondary" id="pdfFitWidth" style="padding: 4px 10px;">ملاءمة العرض</button>
-
-          <span style="border-right: 1px solid var(--line); height: 20px; margin: 0 4px;"></span>
-
-          <button type="button" class="btn-primary" id="pdfDownloadBtn" style="padding: 4px 14px; width: auto;">⬇ تحميل الملف</button>
+          <button type="button" class="btn-primary" id="pdfDownloadFile" style="padding: 6px 12px;" aria-label="تحميل ملف الدرس">تحميل الملف</button>
         </div>
       </div>
 
       <div class="pdf-canvas-container" id="pdfCanvasContainer">
-        <div id="pdfLoadingState" style="color: #ffffff; padding: 40px; text-align: center;">جاري تجهيز وعرض الملف...</div>
+        <div id="pdfLoadingState" style="color: #ffffff; padding: 40px; text-align: center;">جاري تحميل الملف...</div>
         <canvas id="pdfCanvas" style="display: none;"></canvas>
         <div id="pdfErrorState" style="display: none; color: #fca5a5; padding: 30px; text-align: center;"></div>
       </div>
 
       <div class="pdf-viewer-footer-note">
-        يمكنك قراءة الملف هنا أو تحميله على هاتفك بزر «تحميل الملف».
+        يمكنك معاينة الملف أو تحميله للدراسة.
       </div>
     </div>
   `;
@@ -2091,34 +2224,34 @@ async function renderPdfViewerView(page, fileId) {
     container.addEventListener("contextmenu", e => e.preventDefault());
   }
 
-  const downloadBtn = document.getElementById("pdfDownloadBtn");
-  if (downloadBtn) {
-    downloadBtn.onclick = async () => {
-      const originalText = downloadBtn.textContent;
-      downloadBtn.disabled = true;
-      downloadBtn.textContent = "جاري التحضير...";
+  // Download using a short-lived signed URL. Storage RLS remains the authority:
+  // students can download only files they are already allowed to read.
+  const downloadButton = document.getElementById("pdfDownloadFile");
+  if (downloadButton) {
+    downloadButton.addEventListener("click", async () => {
+      const originalLabel = downloadButton.textContent;
+      downloadButton.disabled = true;
+      downloadButton.textContent = "جاري تجهيز التحميل...";
       try {
-        const safeName = String(fileObj.title || "document").replace(/[\\/:*?"<>|]+/g, "_").trim() || "document";
-        const { data: dl, error: dlErr } = await supabase.storage
+        let downloadName = String(fileObj.title || "lesson").trim();
+        downloadName = downloadName.replace(/[\\\\/:*?"<>|\\u0000-\\u001f]/g, "_").slice(0, 140) || "lesson";
+        if (!/\\.pdf$/i.test(downloadName)) downloadName += ".pdf";
+
+        const { data, error } = await supabase.storage
           .from("course-files")
-          .createSignedUrl(fileObj.path, 120, { download: `${safeName}.pdf` });
-        if (dlErr || !dl?.signedUrl) {
-          throw new Error(dlErr?.message || "فشل إنشاء رابط التحميل.");
+          .createSignedUrl(fileObj.path, 300, { download: downloadName });
+
+        if (error || !data?.signedUrl) {
+          throw new Error(error?.message || "تعذر إنشاء رابط التحميل.");
         }
-        const a = document.createElement("a");
-        a.href = dl.signedUrl;
-        a.download = `${safeName}.pdf`;
-        a.rel = "noopener";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        window.location.assign(data.signedUrl);
       } catch (err) {
-        alert(`تعذر تحميل الملف: ${err.message || "خطأ غير معروف"}`);
+        alert(`تعذر تحميل الملف: ${err.message || "حدث خطأ غير متوقع"}`);
       } finally {
-        downloadBtn.disabled = false;
-        downloadBtn.textContent = originalText;
+        downloadButton.disabled = false;
+        downloadButton.textContent = originalLabel;
       }
-    };
+    });
   }
 
   try {
@@ -2141,115 +2274,226 @@ function showPdfError(msg) {
   const errBox = document.getElementById("pdfErrorState");
   if (loading) loading.style.display = "none";
   if (errBox) {
-    errBox.innerHTML = `خطأ في المعاينة: ${escapeHtml(msg)}<br><small>إذا ما تنفتحش المعاينة، جرب زر «تحميل الملف» وافتحه من هاتفك.</small>`;
+    errBox.innerHTML = `خطأ في المعاينة: ${escapeHtml(msg)}<br><small>لا يمكن تحميل الملف مباشرة لأسباب أمنية.</small>`;
     errBox.style.display = "block";
   }
 }
 
 async function loadPdfWithPdfJs(pdfUrl) {
+  // Canvas renderer built on PDF.js, tuned for Arabic documents.
+  // Why this fixes "stuck letters" for every file (current and future):
+  //  1) Pages are drawn at 2x-3x pixel density (devicePixelRatio aware). A 1x canvas
+  //     blurs thin Arabic strokes and dots until letters look glued together.
+  //  2) cMaps + standard fonts are loaded, so PDFs whose fonts are NOT embedded
+  //     still get correct glyph mapping instead of a broken fallback.
+  //  3) The same code path is used for every PDF, so nothing depends on one file.
+  // If PDF.js cannot load at all, we fall back to the browser's native viewer.
   const loading = document.getElementById("pdfLoadingState");
-  const canvas = document.getElementById("pdfCanvas");
+  const container = document.getElementById("pdfCanvasContainer");
+  if (!container) return;
+
   if (!window.pdfjsLib) {
-    showPdfError("مكتبة pdf.js غير متوفرة.");
+    loadPdfNativeFallback(pdfUrl);
     return;
   }
 
+  const PDFJS_ASSETS = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/";
+  let pdfDoc;
   try {
-    const loadingTask = window.pdfjsLib.getDocument(pdfUrl);
-    const pdfDoc = await loadingTask.promise;
-    state.activePdfDoc = pdfDoc;
-    state.pdfCurrentPage = 1;
-    state.pdfTotalPages = pdfDoc.numPages;
-    // Start by fitting the PDF page to the available viewer width. This avoids
-    // browser-side shrinking of a large canvas, which can make fine text look broken.
-    const firstPage = await pdfDoc.getPage(1);
-    const baseViewport = firstPage.getViewport({ scale: 1 });
-    const canvasContainer = document.getElementById("pdfCanvasContainer");
-    const availableWidth = Math.max(280, (canvasContainer?.clientWidth || 900) - 40);
-    state.pdfScale = Math.min(1.5, Math.max(0.6, availableWidth / baseViewport.width));
-    const zoomLabel = document.getElementById("pdfZoomLevel");
-    if (zoomLabel) zoomLabel.textContent = `${Math.round(state.pdfScale * 100)}%`;
-
-    if (loading) loading.style.display = "none";
-    if (canvas) canvas.style.display = "block";
-
-    renderPdfPage(state.pdfCurrentPage);
-
-    document.getElementById("pdfPrevPage").onclick = () => {
-      if (state.pdfCurrentPage > 1) {
-        state.pdfCurrentPage--;
-        renderPdfPage(state.pdfCurrentPage);
-      }
-    };
-
-    document.getElementById("pdfNextPage").onclick = () => {
-      if (state.pdfCurrentPage < state.pdfTotalPages) {
-        state.pdfCurrentPage++;
-        renderPdfPage(state.pdfCurrentPage);
-      }
-    };
-
-    document.getElementById("pdfZoomIn").onclick = () => {
-      state.pdfScale = Math.min(state.pdfScale + 0.2, 2.5);
-      document.getElementById("pdfZoomLevel").textContent = `${Math.round(state.pdfScale * 100)}%`;
-      renderPdfPage(state.pdfCurrentPage);
-    };
-
-    document.getElementById("pdfZoomOut").onclick = () => {
-      state.pdfScale = Math.max(state.pdfScale - 0.2, 0.4);
-      document.getElementById("pdfZoomLevel").textContent = `${Math.round(state.pdfScale * 100)}%`;
-      renderPdfPage(state.pdfCurrentPage);
-    };
-
-    document.getElementById("pdfZoomReset").onclick = () => {
-      state.pdfScale = 1;
-      document.getElementById("pdfZoomLevel").textContent = "100%";
-      renderPdfPage(state.pdfCurrentPage);
-    };
-
-    document.getElementById("pdfFitWidth").onclick = async () => {
-      const currentPage = await state.activePdfDoc.getPage(state.pdfCurrentPage);
-      const base = currentPage.getViewport({ scale: 1 });
-      const wrap = document.getElementById("pdfCanvasContainer");
-      const width = Math.max(280, (wrap?.clientWidth || 900) - 40);
-      state.pdfScale = Math.min(3, Math.max(0.4, width / base.width));
-      document.getElementById("pdfZoomLevel").textContent = `${Math.round(state.pdfScale * 100)}%`;
-      renderPdfPage(state.pdfCurrentPage);
-    };
-  } catch (e) {
-    showPdfError(e.message || "تعذر تصيير صفحات ملف الـ PDF.");
+    pdfDoc = await window.pdfjsLib.getDocument({
+      url: pdfUrl,
+      cMapUrl: PDFJS_ASSETS + "cmaps/",
+      cMapPacked: true,
+      standardFontDataUrl: PDFJS_ASSETS + "standard_fonts/",
+      useSystemFonts: true,
+      isEvalSupported: false
+    }).promise;
+  } catch (err) {
+    console.warn("PDF.js failed, using native viewer:", err);
+    loadPdfNativeFallback(pdfUrl);
+    return;
   }
-}
 
-async function renderPdfPage(num) {
-  if (!state.activePdfDoc) return;
-  const canvas = document.getElementById("pdfCanvas");
-  if (!canvas) return;
+  // Layout: LTR scroll container (avoids RTL scroll quirks), centred page column.
+  container.innerHTML = "";
+  container.style.direction = "ltr";
+  container.style.alignItems = "stretch";
+  const pagesBox = document.createElement("div");
+  pagesBox.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:14px;width:max-content;min-width:100%;";
+  container.appendChild(pagesBox);
 
-  const page = await state.activePdfDoc.getPage(num);
-  const viewport = page.getViewport({ scale: state.pdfScale });
-  const ctx = canvas.getContext("2d", { alpha: false });
-  const outputScale = Math.max(1, window.devicePixelRatio || 1);
-
-  // Render at device pixel ratio for crisp text, while keeping the displayed
-  // canvas dimensions in CSS pixels. Zooming can exceed the viewer width and scroll.
-  canvas.width = Math.floor(viewport.width * outputScale);
-  canvas.height = Math.floor(viewport.height * outputScale);
-  canvas.style.width = `${Math.floor(viewport.width)}px`;
-  canvas.style.height = `${Math.floor(viewport.height)}px`;
-
-  const renderContext = {
-    canvasContext: ctx,
-    viewport: viewport,
-    transform: outputScale === 1 ? null : [outputScale, 0, 0, outputScale, 0, 0]
-  };
-
-  await page.render(renderContext).promise;
+  const total = pdfDoc.numPages;
+  let zoom = 1;               // 1 = fit width
+  let renderToken = 0;
+  let observer = null;
+  let pageEls = [];
+  let lastWidth = container.clientWidth;
 
   const indicator = document.getElementById("pdfPageIndicator");
-  if (indicator) {
-    indicator.textContent = `صفحة ${num} / ${state.pdfTotalPages}`;
+  const zoomLabel = document.getElementById("pdfZoomLevel");
+  const updateIndicator = (n) => { if (indicator) indicator.textContent = `صفحة ${n} / ${total}`; };
+
+  function availableWidth() {
+    const cs = getComputedStyle(container);
+    const pad = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+    return Math.max(200, container.clientWidth - pad);
   }
+
+  async function renderPage(entry, token) {
+    if (entry.rendered || token !== renderToken) return;
+    entry.rendered = true;
+    try {
+      const page = await pdfDoc.getPage(entry.num);
+      if (token !== renderToken) return;
+      const viewport = page.getViewport({ scale: entry.cssScale });
+      // Sharpness: at least 2x, up to 3x; capped so mobile browsers keep the canvas.
+      let outScale = Math.min(Math.max(window.devicePixelRatio || 1, 1.5), 2);
+      const maxPixels = 10000000;
+      while (viewport.width * viewport.height * outScale * outScale > maxPixels && outScale > 1) {
+        outScale -= 0.25;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.floor(viewport.width * outScale);
+      canvas.height = Math.floor(viewport.height * outScale);
+      canvas.style.width = `${Math.floor(viewport.width)}px`;
+      canvas.style.height = `${Math.floor(viewport.height)}px`;
+      canvas.style.display = "block";
+      const ctx = canvas.getContext("2d", { alpha: false });
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      await page.render({
+        canvasContext: ctx,
+        viewport,
+        transform: [outScale, 0, 0, outScale, 0, 0]
+      }).promise;
+      if (token !== renderToken) return;
+      entry.el.innerHTML = "";
+      entry.el.appendChild(canvas);
+    } catch (err) {
+      entry.rendered = false;
+      console.warn("Page render failed:", entry.num, err);
+    }
+  }
+
+  async function layout() {
+    const token = ++renderToken;
+    if (observer) observer.disconnect();
+    pagesBox.innerHTML = "";
+    pageEls = [];
+
+    const first = await pdfDoc.getPage(1);
+    if (token !== renderToken) return;
+    const baseWidth = first.getViewport({ scale: 1 }).width;
+    const cssScale = (availableWidth() / baseWidth) * zoom;
+
+    observer = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          const entry = pageEls[Number(e.target.dataset.index)];
+          if (entry) renderPage(entry, token);
+        }
+      }
+    }, { root: container, rootMargin: "800px 0px" });
+
+    // Paint the first page immediately; fetch the remaining page dimensions in parallel
+    // so opening a long PDF does not wait for every page sequentially.
+    const firstVp = first.getViewport({ scale: cssScale });
+    const firstEl = document.createElement("div");
+    firstEl.dataset.index = "0";
+    firstEl.style.cssText = `width:${Math.floor(firstVp.width)}px;height:${Math.floor(firstVp.height)}px;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.18);flex:0 0 auto;`;
+    pagesBox.appendChild(firstEl);
+    pageEls.push({ num: 1, el: firstEl, cssScale, rendered: false });
+    observer.observe(firstEl);
+    renderPage(pageEls[0], token);
+    if (zoomLabel) zoomLabel.textContent = `${Math.round(zoom * 100)}%`;
+    updateIndicator(1);
+
+    Promise.all(Array.from({ length: Math.max(0, total - 1) }, (_, i) => pdfDoc.getPage(i + 2)))
+      .then((remainingPages) => {
+        if (token !== renderToken) return;
+        remainingPages.forEach((page, i) => {
+          const n = i + 2;
+          const vp = page.getViewport({ scale: cssScale });
+          const el = document.createElement("div");
+          el.dataset.index = String(n - 1);
+          el.style.cssText = `width:${Math.floor(vp.width)}px;height:${Math.floor(vp.height)}px;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.18);flex:0 0 auto;`;
+          pagesBox.appendChild(el);
+          const entry = { num: n, el, cssScale, rendered: false };
+          pageEls.push(entry);
+          observer.observe(el);
+        });
+      })
+      .catch((err) => console.warn("Some PDF pages are taking longer to load:", err));
+  }
+
+  function currentPage() {
+    const top = container.getBoundingClientRect().top;
+    let best = 1, bestDist = Infinity;
+    for (const entry of pageEls) {
+      const d = Math.abs(entry.el.getBoundingClientRect().top - top - 20);
+      if (d < bestDist) { bestDist = d; best = entry.num; }
+    }
+    return best;
+  }
+
+  const goTo = (n) => {
+    const entry = pageEls[Math.max(1, Math.min(total, n)) - 1];
+    if (entry) container.scrollTo({ top: entry.el.offsetTop - 10, behavior: "smooth" });
+  };
+
+  container.addEventListener("scroll", () => updateIndicator(currentPage()), { passive: true });
+  document.getElementById("pdfPrevPage").onclick = () => goTo(currentPage() - 1);
+  document.getElementById("pdfNextPage").onclick = () => goTo(currentPage() + 1);
+  document.getElementById("pdfZoomIn").onclick = () => { zoom = Math.min(3, +(zoom + 0.25).toFixed(2)); layout(); };
+  document.getElementById("pdfZoomOut").onclick = () => { zoom = Math.max(0.5, +(zoom - 0.25).toFixed(2)); layout(); };
+  document.getElementById("pdfZoomReset").onclick = () => { zoom = 1; layout(); };
+  document.getElementById("pdfFitWidth").onclick = () => { zoom = 1; layout(); };
+
+  // Re-fit when the window width really changes (rotation, resize).
+  let resizeTimer = null;
+  const onResize = () => {
+    if (!document.body.contains(container)) { window.removeEventListener("resize", onResize); return; }
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      if (Math.abs(container.clientWidth - lastWidth) > 4) {
+        lastWidth = container.clientWidth;
+        layout();
+      }
+    }, 250);
+  };
+  window.addEventListener("resize", onResize);
+
+  if (loading) loading.style.display = "none";
+  await layout();
+}
+
+function loadPdfNativeFallback(pdfUrl) {
+  // Last-resort viewer: the browser's built-in PDF viewer.
+  const loading = document.getElementById("pdfLoadingState");
+  const container = document.getElementById("pdfCanvasContainer");
+  if (!container) return;
+  let zoom = 100;
+  container.innerHTML = `
+    <iframe id="nativePdfFrame" title="معاينة ملف PDF"
+      style="display:block;width:100%;height:78vh;min-height:520px;border:0;background:#fff;"
+      referrerpolicy="no-referrer"></iframe>`;
+  const frame = document.getElementById("nativePdfFrame");
+  const setZoom = (value) => {
+    zoom = Math.max(40, Math.min(300, value));
+    const label = document.getElementById("pdfZoomLevel");
+    if (label) label.textContent = `${zoom}%`;
+    frame.src = `${pdfUrl}#toolbar=0&navpanes=0&scrollbar=1&zoom=${zoom}`;
+  };
+  document.getElementById("pdfZoomIn").onclick = () => setZoom(zoom + 20);
+  document.getElementById("pdfZoomOut").onclick = () => setZoom(zoom - 20);
+  document.getElementById("pdfZoomReset").onclick = () => setZoom(100);
+  document.getElementById("pdfFitWidth").onclick = () => setZoom(100);
+  for (const id of ["pdfPrevPage", "pdfNextPage", "pdfPageIndicator"]) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "none";
+  }
+  if (loading) loading.style.display = "none";
+  setZoom(100);
 }
 
 // Owner-only directory. Suspension actions are performed by a Supabase Edge Function;
@@ -2649,7 +2893,7 @@ async function renderAdminView(page) {
 
           const { error: remErr } = await supabase.rpc("owner_remove_uploader", { p_user: uid });
           if (remErr) {
-            alert(`فشل الإلغاء: ${remErr.message}\n\nإذا كانت الرسالة تقول إن الدالة غير موجودة: شغّل الملف migration_fix_remove_admin_v13.sql في Supabase (SQL Editor).`);
+            alert(`فشل الإلغاء: ${remErr.message}`);
             rBtn.disabled = false;
             rBtn.textContent = "إلغاء";
           } else {
