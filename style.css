@@ -844,10 +844,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
   min-height: 500px;
   overflow: auto;
   max-height: 80vh;
+  align-items: flex-start;
+  scroll-behavior: smooth;
 }
 
 #pdfCanvas {
-  max-width: 100%;
+  max-width: none;
+  flex: 0 0 auto;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
   background-color: #ffffff;
 }

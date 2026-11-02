@@ -2062,9 +2062,11 @@ async function renderPdfViewerView(page, fileId) {
 
           <span style="border-right: 1px solid var(--line); height: 20px; margin: 0 4px;"></span>
 
-          <button type="button" class="btn-secondary mono" id="pdfZoomOut" style="padding: 4px 10px;">-</button>
-          <span style="font-size: 12px;" class="mono" id="pdfZoomLevel">100%</span>
-          <button type="button" class="btn-secondary mono" id="pdfZoomIn" style="padding: 4px 10px;">+</button>
+          <button type="button" class="btn-secondary mono" id="pdfZoomOut" title="تصغير" aria-label="تصغير" style="padding: 4px 10px;">−</button>
+          <span style="font-size: 12px; min-width: 42px; text-align:center;" class="mono" id="pdfZoomLevel">100%</span>
+          <button type="button" class="btn-secondary mono" id="pdfZoomIn" title="تكبير" aria-label="تكبير" style="padding: 4px 10px;">+</button>
+          <button type="button" class="btn-secondary" id="pdfZoomReset" style="padding: 4px 10px;">الحجم الطبيعي</button>
+          <button type="button" class="btn-secondary" id="pdfFitWidth" style="padding: 4px 10px;">ملاءمة العرض</button>
 
           <span style="border-right: 1px solid var(--line); height: 20px; margin: 0 4px;"></span>
 
@@ -2158,7 +2160,15 @@ async function loadPdfWithPdfJs(pdfUrl) {
     state.activePdfDoc = pdfDoc;
     state.pdfCurrentPage = 1;
     state.pdfTotalPages = pdfDoc.numPages;
-    state.pdfScale = 1.2;
+    // Start by fitting the PDF page to the available viewer width. This avoids
+    // browser-side shrinking of a large canvas, which can make fine text look broken.
+    const firstPage = await pdfDoc.getPage(1);
+    const baseViewport = firstPage.getViewport({ scale: 1 });
+    const canvasContainer = document.getElementById("pdfCanvasContainer");
+    const availableWidth = Math.max(280, (canvasContainer?.clientWidth || 900) - 40);
+    state.pdfScale = Math.min(1.5, Math.max(0.6, availableWidth / baseViewport.width));
+    const zoomLabel = document.getElementById("pdfZoomLevel");
+    if (zoomLabel) zoomLabel.textContent = `${Math.round(state.pdfScale * 100)}%`;
 
     if (loading) loading.style.display = "none";
     if (canvas) canvas.style.display = "block";
@@ -2186,7 +2196,23 @@ async function loadPdfWithPdfJs(pdfUrl) {
     };
 
     document.getElementById("pdfZoomOut").onclick = () => {
-      state.pdfScale = Math.max(state.pdfScale - 0.2, 0.6);
+      state.pdfScale = Math.max(state.pdfScale - 0.2, 0.4);
+      document.getElementById("pdfZoomLevel").textContent = `${Math.round(state.pdfScale * 100)}%`;
+      renderPdfPage(state.pdfCurrentPage);
+    };
+
+    document.getElementById("pdfZoomReset").onclick = () => {
+      state.pdfScale = 1;
+      document.getElementById("pdfZoomLevel").textContent = "100%";
+      renderPdfPage(state.pdfCurrentPage);
+    };
+
+    document.getElementById("pdfFitWidth").onclick = async () => {
+      const currentPage = await state.activePdfDoc.getPage(state.pdfCurrentPage);
+      const base = currentPage.getViewport({ scale: 1 });
+      const wrap = document.getElementById("pdfCanvasContainer");
+      const width = Math.max(280, (wrap?.clientWidth || 900) - 40);
+      state.pdfScale = Math.min(3, Math.max(0.4, width / base.width));
       document.getElementById("pdfZoomLevel").textContent = `${Math.round(state.pdfScale * 100)}%`;
       renderPdfPage(state.pdfCurrentPage);
     };
@@ -2202,14 +2228,20 @@ async function renderPdfPage(num) {
 
   const page = await state.activePdfDoc.getPage(num);
   const viewport = page.getViewport({ scale: state.pdfScale });
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d", { alpha: false });
+  const outputScale = Math.max(1, window.devicePixelRatio || 1);
 
-  canvas.height = viewport.height;
-  canvas.width = viewport.width;
+  // Render at device pixel ratio for crisp text, while keeping the displayed
+  // canvas dimensions in CSS pixels. Zooming can exceed the viewer width and scroll.
+  canvas.width = Math.floor(viewport.width * outputScale);
+  canvas.height = Math.floor(viewport.height * outputScale);
+  canvas.style.width = `${Math.floor(viewport.width)}px`;
+  canvas.style.height = `${Math.floor(viewport.height)}px`;
 
   const renderContext = {
     canvasContext: ctx,
-    viewport: viewport
+    viewport: viewport,
+    transform: outputScale === 1 ? null : [outputScale, 0, 0, outputScale, 0, 0]
   };
 
   await page.render(renderContext).promise;
