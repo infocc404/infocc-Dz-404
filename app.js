@@ -324,6 +324,155 @@ function translateAuthError(msg) {
   return msg;
 }
 
+// ============================================================================
+// 6.5 LOGIN SELECTION-ZOOM EFFECT
+// اضغط بالزر الأيمن واسحب لرسم مربع أزرق؛ عند الإفلات تكبر بطاقة الدخول /
+// إنشاء الحساب كاملة وتستقر مكان المربع. Esc أو زر ✕ أو نقرة يمنى قصيرة = رجوع.
+// ============================================================================
+let loginZoomRect = null;        // last selection (kept across re-renders)
+let loginZoomEscBound = false;
+
+function initLoginSelectZoom() {
+  const page = rootEl.querySelector(".login-page");
+  const wrapper = rootEl.querySelector(".auth-wrapper");
+  const card = rootEl.querySelector(".auth-card");
+  if (!page || !wrapper || !card) return;
+
+  const MIN_DRAG = 40;     // px: smaller than this counts as a simple click
+  const MAX_SCALE = 2.4;   // never blow the card up more than this
+  const MARGIN = 10;       // keep the card away from the screen edges
+
+  // Reset button (shown only while zoomed)
+  const closeBtn = document.createElement("button");
+  closeBtn.type = "button";
+  closeBtn.className = "zoom-reset";
+  closeBtn.setAttribute("aria-label", "إرجاع الحجم الأصلي");
+  closeBtn.textContent = "✕";
+  card.appendChild(closeBtn);
+
+  // Small hint, only for devices that have a real mouse
+  const hint = document.createElement("p");
+  hint.className = "zoom-hint";
+  hint.textContent = "نصيحة: اضغط بالزر الأيمن واسحب لتكبير نافذة الدخول";
+  wrapper.appendChild(hint);
+
+  function place(rect, animate) {
+    card.style.transition = animate ? "" : "none";
+    card.style.transform = "none";
+    void card.offsetWidth; // force reflow so we measure the untransformed box
+    const base = card.getBoundingClientRect();
+    const vw = document.documentElement.clientWidth;
+    const vh = window.innerHeight;
+
+    let s = Math.min(rect.width / base.width, rect.height / base.height);
+    s = Math.max(1, Math.min(s, MAX_SCALE));
+    s = Math.min(s, (vw - 2 * MARGIN) / base.width, (vh - 2 * MARGIN) / base.height);
+    s = Math.max(s, 0.5);
+
+    const w = base.width * s, h = base.height * s;
+    let left = rect.left + rect.width / 2 - w / 2;
+    let top = rect.top + rect.height / 2 - h / 2;
+    left = Math.min(Math.max(left, MARGIN), Math.max(MARGIN, vw - w - MARGIN));
+    top = Math.min(Math.max(top, MARGIN), Math.max(MARGIN, vh - h - MARGIN));
+
+    card.classList.add("zoomed");
+    page.classList.add("has-zoom");
+    card.style.transform = `translate(${left - base.left}px, ${top - base.top}px) scale(${s})`;
+    if (!animate) { void card.offsetWidth; card.style.transition = ""; }
+  }
+
+  function reset() {
+    loginZoomRect = null;
+    card.classList.remove("zoomed");
+    page.classList.remove("has-zoom");
+    card.style.transform = "";
+  }
+
+  closeBtn.addEventListener("click", reset);
+
+  // --- drawing the blue selection box ------------------------------------
+  let box = null, startX = 0, startY = 0, dragging = false, moved = false;
+
+  function rectFrom(x1, y1, x2, y2) {
+    const left = Math.min(x1, x2), top = Math.min(y1, y2);
+    return { left, top, width: Math.abs(x2 - x1), height: Math.abs(y2 - y1) };
+  }
+  function isTextField(el) {
+    return !!(el && el.closest && el.closest("input, textarea, select"));
+  }
+
+  function onMove(e) {
+    if (!dragging) return;
+    const r = rectFrom(startX, startY, e.clientX, e.clientY);
+    if (!moved && (r.width > 6 || r.height > 6)) {
+      moved = true;
+      box = document.createElement("div");
+      box.className = "selection-box";
+      document.body.appendChild(box);
+      page.classList.add("selecting");
+    }
+    if (box) {
+      box.style.left = r.left + "px";
+      box.style.top = r.top + "px";
+      box.style.width = r.width + "px";
+      box.style.height = r.height + "px";
+    }
+  }
+
+  function endDrag(e, cancelled) {
+    if (!dragging) return;
+    dragging = false;
+    document.removeEventListener("pointermove", onMove);
+    document.removeEventListener("pointerup", onUp);
+    document.removeEventListener("pointercancel", onCancel);
+    page.classList.remove("selecting");
+    const r = rectFrom(startX, startY, e.clientX, e.clientY);
+    if (box) { box.remove(); box = null; }
+    if (cancelled) return;
+    if (moved && r.width >= MIN_DRAG && r.height >= MIN_DRAG) {
+      loginZoomRect = r;
+      place(r, true);
+    } else if (!moved && card.classList.contains("zoomed")) {
+      reset(); // short right-click on the page while zoomed = go back
+    }
+  }
+  function onUp(e) { if (e.button === 2) endDrag(e, false); }
+  function onCancel(e) { endDrag(e, true); }
+
+  page.addEventListener("pointerdown", (e) => {
+    if (e.pointerType !== "mouse" || e.button !== 2) return;
+    if (isTextField(e.target)) return; // keep the normal menu (paste, etc.) on inputs
+    dragging = true; moved = false;
+    startX = e.clientX; startY = e.clientY;
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onUp);
+    document.addEventListener("pointercancel", onCancel);
+  });
+
+  // Hide the browser menu on the login page (except on input fields)
+  page.addEventListener("contextmenu", (e) => {
+    if (!isTextField(e.target)) e.preventDefault();
+  });
+
+  // Keep the card correct when the window or the card height changes
+  // (e.g. switching to the sign-up tab makes the card taller).
+  const refit = () => { if (loginZoomRect && card.classList.contains("zoomed")) place(loginZoomRect, false); };
+  window.addEventListener("resize", refit);
+  if (window.ResizeObserver) new ResizeObserver(refit).observe(card);
+
+  if (!loginZoomEscBound) {
+    loginZoomEscBound = true;
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      const z = rootEl.querySelector(".auth-card.zoomed");
+      if (z) { loginZoomRect = null; z.classList.remove("zoomed"); z.style.transform = ""; rootEl.querySelector(".login-page")?.classList.remove("has-zoom"); }
+    });
+  }
+
+  // Re-apply the previous selection after a re-render (e.g. wrong password)
+  if (loginZoomRect) place(loginZoomRect, false);
+}
+
 // 7. LOGGED-OUT VIEW RENDERER
 function renderLoggedOut(errorMessage = "", successMessage = "") {
   rootEl.innerHTML = `
@@ -505,6 +654,8 @@ function renderLoggedOut(errorMessage = "", successMessage = "") {
       renderLoggedOut("", "تم إرسال رابط إعادة التعيين إلى بريدك الإلكتروني.");
     }
   };
+
+  initLoginSelectZoom();
 }
 
 // 8. PASSWORD RECOVERY SCREEN
