@@ -212,8 +212,12 @@ async function fetchRoleAndGroup() {
         state.studentGroup = g >= 1 && g <= 10 ? g : null;
         state.studentDisplayName = profile.display_name ? String(profile.display_name) : null;
       } else {
-        state.studentGroup = null;
+        // Keep the authoritative assigned_group returned by my_role() when the
+        // profile read is temporarily blocked by RLS/network/cache issues.
+        const rpcGroup = Number(state.studentGroup);
+        state.studentGroup = Number.isInteger(rpcGroup) && rpcGroup >= 1 && rpcGroup <= 10 ? rpcGroup : null;
         state.studentDisplayName = null;
+        if (profileError) console.warn("student_profiles read failed; using my_role assigned_group fallback:", profileError);
       }
     }
   } catch (err) {
@@ -848,6 +852,9 @@ function renderApp() {
           </a>
           <a href="#/search" class="nav-link ${hash === "#/search" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><span>ملفاتي والبحث</span></a>
           <a href="#/favorites" class="nav-link ${hash === "#/favorites" ? "active" : ""}><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v14H4zM8 3h8v3H8zM8 10h8M8 14h6"/></svg><span>ملفاتي المفضلة</span></a>
+          <a href="#/messages" class="nav-link ${hash === "#/messages" ? "active" : ""}">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v12H8l-4 3z"/><path d="M8 9h8M8 13h5"/></svg><span>الرسائل</span>
+          </a>
           <a href="#/support" class="nav-link ${hash === "#/support" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg><span>الإبلاغ عن مشكلة</span></a>
           <a href="#/groupes" class="nav-link ${hash.startsWith("#/groupe") ? "active" : ""}">
             <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v15H4zM8 3v4M16 3v4M4 9h16M8 13h3M8 16h7"/></svg><span>المواد والأفواج</span>
@@ -1184,6 +1191,7 @@ function dispatchRoute(hash) {
   if (hash === "#/search") { renderSearchPage(page); return; }
   if (hash === "#/favorites") { renderFavoritesPage(page); return; }
   if (hash === "#/support") { renderSupportPage(page); return; }
+  if (hash === "#/messages") { renderStudentMessagesView(page); return; }
 
   // #/groupes
   if (hash === "#/groupes") {
@@ -2769,6 +2777,11 @@ async function renderOwnerUsersView(page) {
       <div id="ownerUsersError" role="alert" class="auth-error-box" style="display:none;"></div>
       <div id="ownerUsersTable"><p style="padding:18px;color:var(--muted);">جارٍ تحميل قائمة المستخدمين...</p></div>
     </div>
+    <div class="content-card" style="margin-top:18px;">
+      <h3 style="font-size:18px;color:var(--brown-dark);margin-bottom:6px;">طلبات حذف الحسابات</h3>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">طلبات الطلاب فقط. يمكنك مراجعة الطلب ثم حذف الحساب نهائيًا؛ حسابات المالك والمشرفين ورؤساء الأقسام محمية.</p>
+      <div id="ownerDeletionRequests"><p style="color:var(--muted);">جارٍ تحميل الطلبات...</p></div>
+    </div>
   `;
 
   const groupFilter = page.querySelector("#ownerUserGroupFilter");
@@ -2811,7 +2824,7 @@ async function renderOwnerUsersView(page) {
               <td>${roleLabels[userRole] || escapeHtml(userRole)}</td>
               <td class="mono">${userGroup ? `G${userGroup}` : (userRole === "owner" || userRole === "admin" ? "كل الأفواج" : "غير محدد")}</td>
               <td><span style="font-weight:600;color:${suspended ? "var(--danger)" : "var(--success,#28734a)"};">${suspended ? "موقوف" : "نشط"}</span></td>
-              <td>${isProtectedOwner ? `<span style="color:var(--muted);">محمي</span>` : `<button type="button" class="${suspended ? "btn-primary" : "btn-danger"} owner-user-access-btn" data-user-id="${escapeHtml(userId || "")}" data-action="${suspended ? "restore" : "suspend"}" data-email="${escapeHtml(user.email || "")}" ${!userId ? "disabled" : ""}>${suspended ? "إعادة التفعيل" : "إيقاف الحساب"}</button>`}</td>
+              <td>${isProtectedOwner ? `<span style="color:var(--muted);">محمي</span>` : `<div style="display:flex;gap:6px;flex-wrap:wrap;"><button type="button" class="${suspended ? "btn-primary" : "btn-danger"} owner-user-access-btn" data-user-id="${escapeHtml(userId || "")}" data-action="${suspended ? "restore" : "suspend"}" data-email="${escapeHtml(user.email || "")}" ${!userId ? "disabled" : ""}>${suspended ? "إعادة التفعيل" : "إيقاف الحساب"}</button>${userRole === "student" ? `<button type="button" class="btn-danger owner-delete-student-btn" data-user-id="${escapeHtml(userId || "")}" data-email="${escapeHtml(user.email || "")}" ${!userId ? "disabled" : ""}>حذف نهائي</button>` : ""}</div>`}</td>
             </tr>`;
           }).join("")}</tbody>
         </table>
@@ -2852,6 +2865,56 @@ async function renderOwnerUsersView(page) {
         }
       };
     });
+    table.querySelectorAll(".owner-delete-student-btn").forEach(button => {
+      button.onclick = async () => {
+        const email = button.dataset.email;
+        if (!confirm(`تحذير: سيتم حذف حساب الطالب ${email} نهائيًا من Auth. لا يمكن التراجع عن ذلك. هل تريد المتابعة؟`)) return;
+        button.disabled = true; button.textContent = "جارٍ الحذف...";
+        try {
+          const { data, error } = await supabase.functions.invoke("delete-student-account", {
+            body: { userId: button.dataset.userId }
+          });
+          if (error) throw new Error(error.message || "تعذر الاتصال بوظيفة الحذف.");
+          if (data?.error) throw new Error(data.error);
+          alert("تم حذف حساب الطالب بنجاح.");
+          await loadUsers(); await loadDeletionRequests();
+        } catch (err) {
+          alert(`لم يتم حذف الحساب: ${err.message || "خطأ غير معروف"}. تأكد من نشر Edge Function باسم delete-student-account.`);
+          button.disabled = false; button.textContent = "حذف نهائي";
+        }
+      };
+    });
+  }
+
+  async function loadDeletionRequests() {
+    const host = page.querySelector("#ownerDeletionRequests");
+    if (!host) return;
+    try {
+      const { data, error } = await supabase.from("account_deletion_requests")
+        .select("id,user_id,student_email,reason,status,created_at")
+        .eq("status", "pending").order("created_at", { ascending: false });
+      if (error) throw error;
+      if (!data?.length) { host.innerHTML = `<p style="color:var(--muted);">لا توجد طلبات حذف معلقة.</p>`; return; }
+      host.innerHTML = `<div style="display:grid;gap:10px;">${data.map(r => `<article style="border:1px solid var(--line);border-radius:12px;padding:13px;">
+        <b class="mono" dir="ltr">${escapeHtml(r.student_email || r.user_id)}</b><p style="margin:8px 0;color:var(--muted);font-size:13px;">${escapeHtml(r.reason || "لم يذكر الطالب سببًا.")}</p>
+        <small style="color:var(--muted);">${formatDate(r.created_at)}</small>
+        <div style="margin-top:10px;"><button class="btn-danger owner-delete-request-btn" data-user-id="${escapeHtml(r.user_id)}" data-request-id="${r.id}">مراجعة وحذف حساب الطالب</button></div>
+      </article>`).join("")}</div>`;
+      host.querySelectorAll(".owner-delete-request-btn").forEach(btn => btn.onclick = async () => {
+        if (!confirm("هل تأكدت من هوية الطالب؟ سيتم حذف حساب الطالب نهائيًا بعد التأكيد.")) return;
+        btn.disabled = true; btn.textContent = "جارٍ تنفيذ الحذف...";
+        try {
+          const { data: result, error: invokeError } = await supabase.functions.invoke("delete-student-account", {
+            body: { userId: btn.dataset.userId, requestId: Number(btn.dataset.requestId) }
+          });
+          if (invokeError) throw new Error(invokeError.message);
+          if (result?.error) throw new Error(result.error);
+          await loadDeletionRequests(); await loadUsers();
+        } catch (err) { alert(`فشل الحذف: ${err.message || "خطأ غير معروف"}`); btn.disabled = false; btn.textContent = "مراجعة وحذف حساب الطالب"; }
+      });
+    } catch (err) {
+      host.innerHTML = `<p style="color:var(--danger);">تعذر تحميل الطلبات: ${escapeHtml(err.message || "خطأ غير معروف")}. شغّل migration_account_messaging.sql أولًا.</p>`;
+    }
   }
 
   async function loadUsers() {
@@ -2872,6 +2935,112 @@ async function renderOwnerUsersView(page) {
   roleFilter.onchange = renderRows;
   searchInput.oninput = renderRows;
   await loadUsers();
+  await loadDeletionRequests();
+}
+
+
+// Private owner/supervisor-to-student inbox. RLS enforces the group boundary in Supabase.
+async function renderStudentMessagesView(page) {
+  const isStaff = state.role === "owner" || state.role === "uploader";
+  page.innerHTML = `
+    <div class="page-banner"><h2>المراسلة مع الطلاب</h2><p>${isStaff ? "تواصل خاص مع الطلاب. رئيس القسم يستطيع مراسلة طلاب فوجه فقط." : "اقرأ رسائل الإدارة أو المشرف المسؤول عن فوجك وأرسل ردك."}</p></div>
+    ${isStaff ? `<div class="content-card" style="margin-bottom:16px;">
+      <h3 style="font-size:16px;margin-bottom:12px;color:var(--brown-dark);">بدء محادثة مع طالب</h3>
+      <form id="newStudentConversation" style="display:grid;gap:10px;">
+        <label class="form-label">الطالب</label><select id="messageStudent" class="form-control" required><option value="">جارٍ تحميل الطلاب...</option></select>
+        <label class="form-label">موضوع الرسالة</label><input id="messageSubject" class="form-control" maxlength="160" required placeholder="موضوع مختصر">
+        <label class="form-label">نص الرسالة</label><textarea id="messageFirstBody" class="form-control" rows="3" maxlength="5000" required placeholder="اكتب رسالتك..."></textarea>
+        <button class="btn-primary" type="submit" style="width:auto;justify-self:start;">إرسال وفتح المحادثة</button>
+      </form><div id="newMessageFeedback" role="status" style="font-size:13px;margin-top:8px;"></div>
+    </div>` : ""}
+    <div class="content-card"><h3 style="font-size:17px;margin-bottom:12px;color:var(--brown-dark);">المحادثات</h3><div id="studentConversationList">جارٍ تحميل المحادثات...</div></div>
+    <div id="studentConversationDetail" class="content-card" style="margin-top:16px;display:none;"></div>
+  `;
+  const list = page.querySelector("#studentConversationList");
+  const detail = page.querySelector("#studentConversationDetail");
+  let conversations = [];
+  let selected = null;
+
+  if (isStaff) {
+    const studentsQuery = supabase.from("student_profiles").select("user_id,group_no,display_name").order("group_no");
+    const { data: students, error: studentsError } = await studentsQuery;
+    const select = page.querySelector("#messageStudent");
+    if (studentsError) select.innerHTML = `<option value="">تعذر تحميل الطلاب: ${escapeHtml(studentsError.message)}</option>`;
+    else {
+      const allowed = state.role === "owner" ? students : students.filter(s => Number(s.group_no) === Number(state.uploaderGroup));
+      select.innerHTML = `<option value="">اختر طالبًا...</option>` + allowed.map(s =>
+        `<option value="${escapeHtml(s.user_id)}" data-group="${s.group_no}">${escapeHtml(s.display_name || "طالب")} — G${s.group_no} — ${escapeHtml(s.user_id.slice(0,8))}</option>`
+      ).join("");
+    }
+    page.querySelector("#newStudentConversation").onsubmit = async e => {
+      e.preventDefault();
+      const feedback = page.querySelector("#newMessageFeedback");
+      const studentId = select.value;
+      const groupNo = Number(select.selectedOptions[0]?.dataset.group);
+      const subject = page.querySelector("#messageSubject").value.trim();
+      const body = page.querySelector("#messageFirstBody").value.trim();
+      try {
+        if (!studentId || !Number.isInteger(groupNo)) throw new Error("اختر طالبًا صحيحًا.");
+        const { data: conv, error: convError } = await supabase.from("student_conversations")
+          .insert({ student_id: studentId, group_no: groupNo, subject, created_by: state.user.id })
+          .select("id,student_id,group_no,subject,created_at,updated_at").single();
+        if (convError) throw convError;
+        const { error: msgError } = await supabase.from("student_messages").insert({
+          conversation_id: conv.id, sender_id: state.user.id, body
+        });
+        if (msgError) throw msgError;
+        page.querySelector("#messageFirstBody").value = "";
+        page.querySelector("#messageSubject").value = "";
+        feedback.style.color = "var(--success,#28734a)"; feedback.textContent = "تم إرسال الرسالة.";
+        await loadConversations(); await openConversation(conv.id);
+      } catch (err) { feedback.style.color = "var(--danger,#a33b32)"; feedback.textContent = err.message || "تعذر إرسال الرسالة."; }
+    };
+  }
+
+  async function loadConversations() {
+    const { data, error } = await supabase.from("student_conversations")
+      .select("id,student_id,group_no,subject,created_at,updated_at")
+      .order("updated_at", { ascending: false });
+    if (error) {
+      list.innerHTML = `<p style="color:var(--danger);">تعذر تحميل المحادثات: ${escapeHtml(error.message)}. تحقق من تشغيل migration_account_messaging.sql.</p>`;
+      return;
+    }
+    conversations = data || [];
+    if (!conversations.length) { list.innerHTML = `<p style="color:var(--muted);">لا توجد محادثات حتى الآن.</p>`; return; }
+    list.innerHTML = `<div style="display:grid;gap:8px;">${conversations.map(c => `<button type="button" class="btn-secondary conversation-open-btn" data-id="${c.id}" style="text-align:right;padding:12px;border-radius:10px;">
+      <b>${escapeHtml(c.subject)}</b><span style="display:block;color:var(--muted);font-size:12px;margin-top:4px;">${isStaff ? `طالب: ${escapeHtml(c.student_id.slice(0,8))} · ` : ""}G${c.group_no} · ${formatDate(c.updated_at)}</span>
+    </button>`).join("")}</div>`;
+    list.querySelectorAll(".conversation-open-btn").forEach(btn => btn.onclick = () => openConversation(btn.dataset.id));
+  }
+
+  async function openConversation(id) {
+    const c = conversations.find(x => x.id === id);
+    if (!c) return;
+    selected = c;
+    const { data: messages, error } = await supabase.from("student_messages")
+      .select("id,sender_id,body,created_at").eq("conversation_id", id).order("created_at");
+    if (error) { detail.style.display = "block"; detail.innerHTML = `<p style="color:var(--danger);">${escapeHtml(error.message)}</p>`; return; }
+    detail.style.display = "block";
+    detail.innerHTML = `<h3 style="font-size:17px;color:var(--brown-dark);margin-bottom:4px;">${escapeHtml(c.subject)}</h3>
+      <p style="color:var(--muted);font-size:12px;margin-bottom:14px;">الفوج G${c.group_no}</p>
+      <div style="display:grid;gap:9px;margin-bottom:14px;">${(messages || []).map(m => `<div style="max-width:90%;justify-self:${m.sender_id === state.user.id ? "end" : "start"};background:${m.sender_id === state.user.id ? "var(--cream,#f7f0e5)" : "#fff"};border:1px solid var(--line);border-radius:12px;padding:10px 12px;">
+        <p style="white-space:pre-wrap;line-height:1.7;margin:0;">${escapeHtml(m.body)}</p><small style="display:block;color:var(--muted);margin-top:5px;">${m.sender_id === state.user.id ? "أنت" : "الطرف الآخر"} · ${formatDate(m.created_at)}</small>
+      </div>`).join("")}</div>
+      <form id="replyStudentMessage" style="display:grid;gap:8px;"><textarea id="replyStudentBody" class="form-control" rows="3" maxlength="5000" required placeholder="اكتب ردك..."></textarea><button class="btn-primary" type="submit" style="width:auto;justify-self:start;">إرسال الرد</button></form>
+      <div id="replyStudentFeedback" role="status" style="font-size:13px;margin-top:8px;"></div>`;
+    detail.querySelector("#replyStudentMessage").onsubmit = async e => {
+      e.preventDefault();
+      const btn = e.submitter; btn.disabled = true;
+      const body = detail.querySelector("#replyStudentBody").value.trim();
+      try {
+        const { error: sendError } = await supabase.from("student_messages").insert({ conversation_id: c.id, sender_id: state.user.id, body });
+        if (sendError) throw sendError;
+        await loadConversations(); await openConversation(c.id);
+      } catch (err) { detail.querySelector("#replyStudentFeedback").textContent = err.message || "تعذر إرسال الرد."; }
+      finally { btn.disabled = false; }
+    };
+  }
+  await loadConversations();
 }
 
 // 19. PAGE: MINIMAL ADMIN FOR OWNER ONLY (#/admin)
@@ -3671,6 +3840,16 @@ function renderAccountView(page) {
         </section>
       `}
 
+      ${state.role === "student" ? `
+        <hr style="border:0;border-top:1px solid var(--line);margin:24px 0;">
+        <section style="border:1px solid #e7c8bd;border-radius:13px;padding:16px;background:#fffaf8;">
+          <h3 style="font-size:16px;color:#8b3c32;margin-bottom:6px;">طلب حذف حسابي</h3>
+          <p style="font-size:13px;color:var(--muted);line-height:1.8;">يمكنك إرسال طلب إلى مالك المنصة. لن يُحذف الحساب تلقائيًا؛ المالك وحده يراجع الطلب وينفذ الحذف بعد التأكد.</p>
+          <textarea id="accountDeletionReason" class="form-control" rows="2" maxlength="1000" placeholder="سبب الطلب (اختياري)" style="margin:10px 0;"></textarea>
+          <div id="accountDeletionFeedback" role="status" style="font-size:13px;margin-bottom:8px;"></div>
+          <button type="button" id="sendAccountDeletionRequest" class="btn-danger" style="padding:9px 15px;">إرسال طلب حذف الحساب</button>
+        </section>
+      ` : ""}
       <hr style="border:0;border-top:1px solid var(--line);margin:24px 0;">
       <button type="button" class="btn-danger" id="accountLogoutBtn" style="padding:10px 20px;font-size:14px;">تسجيل الخروج من الحساب</button>
     </div>
@@ -3695,7 +3874,20 @@ function renderAccountView(page) {
         }
         const statusLabels = { pending: "قيد المراجعة", approved: "تمت الموافقة", rejected: "مرفوض" };
         const statusColors = { pending: "#8a6d3b", approved: "#28734a", rejected: "#a33b32" };
-        requestsContainer.innerHTML = `<div class="table-responsive"><table class="data-table"><thead><tr><th>الفوج الحالي</th><th>الفوج المطلوب</th><th>الحالة</th><th>تاريخ الطلب</th><th>ملاحظة الإدارة</th></tr></thead><tbody>${data.map(r => `<tr><td class="mono">${r.current_group ? `G${r.current_group}` : "غير محدد"}</td><td class="mono">G${r.requested_group}</td><td><span style="color:${statusColors[r.status] || "inherit"};font-weight:600;">${statusLabels[r.status] || escapeHtml(r.status)}</span></td><td class="mono" style="font-size:12px;">${formatDate(r.created_at)}</td><td>${escapeHtml(r.admin_note || "—")}</td></tr>`).join("")}</tbody></table></div>`;
+        requestsContainer.innerHTML = `<div style="display:grid;gap:12px;">${data.map(r => `<article style="border:1px solid var(--line);border-radius:14px;padding:15px;background:var(--surface,#fff);box-shadow:0 2px 8px rgba(60,42,24,.04);">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+            <strong style="color:var(--brown-dark);">طلب تغيير الفوج</strong>
+            <span style="border-radius:20px;padding:5px 11px;background:${r.status === "approved" ? "#e8f4eb" : r.status === "rejected" ? "#faeae8" : "#f8f0df"};color:${statusColors[r.status] || "inherit"};font-size:12px;font-weight:700;">${statusLabels[r.status] || escapeHtml(r.status)}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:10px;">
+            <div><small style="display:block;color:var(--muted);margin-bottom:4px;">الفوج المسجل وقت الطلب</small><b class="mono">${r.current_group ? `G${r.current_group}` : "غير محدد"}</b></div>
+            <div><small style="display:block;color:var(--muted);margin-bottom:4px;">الفوج المطلوب</small><b class="mono">G${r.requested_group}</b></div>
+            <div><small style="display:block;color:var(--muted);margin-bottom:4px;">تاريخ الإرسال</small><b style="font-size:13px;">${formatDate(r.created_at)}</b></div>
+            <div><small style="display:block;color:var(--muted);margin-bottom:4px;">تاريخ المراجعة</small><b style="font-size:13px;">${r.reviewed_at ? formatDate(r.reviewed_at) : "لم تتم المراجعة بعد"}</b></div>
+          </div>
+          <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line);"><small style="color:var(--muted);display:block;margin-bottom:4px;">سبب الطلب</small><p style="margin:0;line-height:1.7;">${escapeHtml(r.reason || "—")}</p></div>
+          <div style="margin-top:9px;padding:10px 12px;border-radius:9px;background:var(--cream,#fbf7f0);"><small style="color:var(--muted);display:block;margin-bottom:4px;">رد الإدارة / نتيجة المراجعة</small><p style="margin:0;line-height:1.7;">${escapeHtml(r.admin_note || (r.status === "pending" ? "طلبك قيد المراجعة." : "لم تضف الإدارة ملاحظة."))}</p></div>
+        </article>`).join("")}</div>`;
       } catch (err) {
         console.warn("Could not load group change requests:", err);
         requestsContainer.innerHTML = `<p style="color:var(--muted);font-size:13px;">تعذر تحميل الطلبات. تحقق من إعدادات طلبات تغيير الفوج. التفاصيل: ${escapeHtml(err.message || "خطأ غير معروف")}</p>`;
@@ -3733,6 +3925,26 @@ function renderAccountView(page) {
     };
     loadMyGroupRequests();
   }
+
+  const deleteRequestButton = document.getElementById("sendAccountDeletionRequest");
+  if (deleteRequestButton) deleteRequestButton.onclick = async () => {
+    const feedback = document.getElementById("accountDeletionFeedback");
+    deleteRequestButton.disabled = true;
+    feedback.textContent = "جارٍ إرسال الطلب...";
+    try {
+      const reason = document.getElementById("accountDeletionReason").value.trim();
+      const { error } = await supabase.from("account_deletion_requests").insert({ reason: reason || null });
+      if (error) throw error;
+      feedback.style.color = "var(--success,#28734a)";
+      feedback.textContent = "تم إرسال طلبك إلى المالك. سيبقى حسابك نشطًا حتى تتم مراجعته.";
+      document.getElementById("accountDeletionReason").value = "";
+    } catch (err) {
+      feedback.style.color = "var(--danger,#a33b32)";
+      feedback.textContent = err.code === "42P01" || err.code === "PGRST205"
+        ? "ميزة الطلب تحتاج إلى تشغيل migration_account_messaging.sql في Supabase."
+        : `تعذر إرسال الطلب: ${err.message || "خطأ غير معروف"}`;
+    } finally { deleteRequestButton.disabled = false; }
+  };
 
   document.getElementById("accountLogoutBtn").onclick = async () => {
     await supabase.auth.signOut();
