@@ -851,6 +851,7 @@ function renderApp() {
             <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l9 4V6l-9 4zM8 14l2 6h3l-2-5M19 9a4 4 0 0 1 0 6"/></svg><span>الإعلانات</span>
           </a>
           <a href="#/search" class="nav-link ${hash === "#/search" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><span>ملفاتي والبحث</span></a>
+          <a href="#/exams" class="nav-link ${hash === "#/exams" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7"/></svg><span>أرشيف الامتحانات</span></a>
           <a href="#/favorites" class="nav-link ${hash === "#/favorites" ? "active" : ""}><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v14H4zM8 3h8v3H8zM8 10h8M8 14h6"/></svg><span>ملفاتي المفضلة</span></a>
           <a href="#/messages" class="nav-link ${hash === "#/messages" ? "active" : ""}">
             <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v12H8l-4 3z"/><path d="M8 9h8M8 13h5"/></svg><span>الرسائل</span>
@@ -1189,6 +1190,7 @@ function dispatchRoute(hash) {
   if (hash === "#/announcements") { renderAnnouncementsView(page); return; }
   if (hash === "#/notifications") { renderNotificationsView(page); return; }
   if (hash === "#/search") { renderSearchPage(page); return; }
+  if (hash === "#/exams") { renderExamsArchiveView(page); return; }
   if (hash === "#/favorites") { renderFavoritesPage(page); return; }
   if (hash === "#/support") { renderSupportPage(page); return; }
   if (hash === "#/messages") { renderStudentMessagesView(page); return; }
@@ -1275,6 +1277,91 @@ function dispatchRoute(hash) {
 
   // Unknown route: 404
   renderNotFoundView(page);
+}
+
+// Exam archive reuses the existing files table and private Storage bucket.
+// Access is always filtered through getAccessibleFiles(), preserving group RLS.
+function renderExamsArchiveView(page) {
+  const allExams = getAccessibleFiles().filter(file => String(file.kind || "").toLowerCase() === "exam");
+  const subjects = [...new Set(allExams.map(file => normalizeSubjectId(file.subject)).filter(Boolean))].sort();
+  const semesters = [...new Set(allExams.map(file => String(file.semester || "").trim()).filter(Boolean))].sort();
+  const canFilterGroups = state.role === "owner" || state.role === "admin";
+  page.innerHTML = `
+    <div class="page-banner">
+      <h2>أرشيف الامتحانات السابقة</h2>
+      <p>اجمع امتحانات السنوات السابقة في مكان واحد، وابحث حسب المادة والفصل الدراسي. تظهر لك الملفات التي تسمح صلاحيات حسابك بالوصول إليها فقط.</p>
+    </div>
+    <section class="content-card">
+      <div class="exam-archive-filters" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px;">
+        <label class="form-group">بحث في العناوين
+          <input id="examArchiveSearch" class="form-control" type="search" placeholder="اكتب اسم الامتحان أو كلمة منه">
+        </label>
+        <label class="form-group">المادة
+          <select id="examArchiveSubject" class="form-control">
+            <option value="">كل المواد</option>
+            ${subjects.map(id => { const sub = getSubjectObj(id); return `<option value="${escapeHtml(id)}">${escapeHtml(sub.nameEn || sub.nameFr || id)}</option>`; }).join("")}
+          </select>
+        </label>
+        <label class="form-group">الفصل الدراسي
+          <select id="examArchiveSemester" class="form-control">
+            <option value="">كل الفصول</option>
+            ${semesters.map(value => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join("")}
+          </select>
+        </label>
+        ${canFilterGroups ? `<label class="form-group">الفوج
+          <select id="examArchiveGroup" class="form-control">
+            <option value="">كل الأفواج</option>
+            ${[1,2,3,4,5,6,7,8,9,10].map(g => `<option value="${g}">G${g}</option>`).join("")}
+          </select>
+        </label>` : ""}
+      </div>
+      <div id="examArchiveCount" style="font-size:13px;color:var(--muted);margin-bottom:12px;"></div>
+      <div id="examArchiveList" class="exam-archive-list"></div>
+    </section>`;
+  const search = page.querySelector("#examArchiveSearch");
+  const subject = page.querySelector("#examArchiveSubject");
+  const semester = page.querySelector("#examArchiveSemester");
+  const group = page.querySelector("#examArchiveGroup");
+  const list = page.querySelector("#examArchiveList");
+  const count = page.querySelector("#examArchiveCount");
+  const draw = () => {
+    const q = search.value.trim().toLowerCase();
+    const selectedSubject = subject.value;
+    const selectedSemester = semester.value;
+    const selectedGroup = group?.value || "";
+    const filtered = allExams.filter(file => {
+      const title = String(file.title || "").toLowerCase();
+      const sid = normalizeSubjectId(file.subject);
+      return (!q || title.includes(q) || String(file.subject || "").toLowerCase().includes(q))
+        && (!selectedSubject || sid === selectedSubject)
+        && (!selectedSemester || String(file.semester || "") === selectedSemester)
+        && (!selectedGroup || Number(file.group_no || 0) === Number(selectedGroup));
+    }).sort((a,b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    count.textContent = `عدد الامتحانات المتاحة: ${filtered.length}`;
+    if (!filtered.length) {
+      list.innerHTML = `<div class="empty-state">لا توجد امتحانات مطابقة حاليًا. ستظهر هنا الملفات التي تُرفع بنوع Exam والمتاحة لفوجك.</div>`;
+      return;
+    }
+    list.innerHTML = filtered.map(file => {
+      const sub = getSubjectObj(normalizeSubjectId(file.subject));
+      const groupLabel = file.group_no ? `G${Number(file.group_no)}` : "مشترك";
+      const dateLabel = file.created_at ? new Date(file.created_at).toLocaleDateString("ar") : "";
+      return `<article class="content-card exam-archive-card" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:0 0 10px;padding:14px;">
+        <div style="min-width:0;flex:1;">
+          <strong style="display:block;color:var(--brown-dark);margin-bottom:5px;overflow-wrap:anywhere;">${escapeHtml(file.title || "امتحان دون عنوان")}</strong>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;color:var(--muted);font-size:12px;">
+            <span>${escapeHtml(sub.nameEn || sub.nameFr || file.subject || "—")}</span>
+            <span>· ${escapeHtml(file.semester || "الفصل غير محدد")}</span>
+            <span>· ${escapeHtml(groupLabel)}</span>
+            ${dateLabel ? `<span>· أضيف في ${escapeHtml(dateLabel)}</span>` : ""}
+          </div>
+        </div>
+        <a class="btn-primary" style="width:auto;text-decoration:none;white-space:nowrap;" href="#/voir/${encodeURIComponent(file.id)}">فتح الامتحان</a>
+      </article>`;
+    }).join("");
+  };
+  [search, subject, semester, group].filter(Boolean).forEach(el => el.addEventListener("input", draw));
+  draw();
 }
 
 const ANNOUNCEMENT_PRIORITY = { urgent: 0, important: 1, normal: 2 };
