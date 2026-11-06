@@ -2941,13 +2941,17 @@ async function renderOwnerUsersView(page) {
 
 // Private owner/supervisor-to-student inbox. RLS enforces the group boundary in Supabase.
 async function renderStudentMessagesView(page) {
-  const isStaff = state.role === "owner" || state.role === "uploader";
+  const isStaff = ["owner", "admin", "uploader"].includes(state.role);
+  const canChooseAnyGroup = ["owner", "admin"].includes(state.role);
   page.innerHTML = `
     <div class="page-banner"><h2>المراسلة مع الطلاب</h2><p>${isStaff ? "تواصل خاص مع الطلاب. رئيس القسم يستطيع مراسلة طلاب فوجه فقط." : "اقرأ رسائل الإدارة أو المشرف المسؤول عن فوجك وأرسل ردك."}</p></div>
     ${isStaff ? `<div class="content-card" style="margin-bottom:16px;">
       <h3 style="font-size:16px;margin-bottom:12px;color:var(--brown-dark);">بدء محادثة مع طالب</h3>
       <form id="newStudentConversation" style="display:grid;gap:10px;">
-        <label class="form-label">الطالب</label><select id="messageStudent" class="form-control" required><option value="">جارٍ تحميل الطلاب...</option></select>
+        <label class="form-label" for="messageGroup">أولًا: اختر الفوج</label>
+        <select id="messageGroup" class="form-control" required><option value="">اختر الفوج...</option></select>
+        <label class="form-label" for="messageStudent">ثانيًا: اختر الطالب</label>
+        <select id="messageStudent" class="form-control" required disabled><option value="">اختر الفوج أولًا</option></select>
         <label class="form-label">موضوع الرسالة</label><input id="messageSubject" class="form-control" maxlength="160" required placeholder="موضوع مختصر">
         <label class="form-label">نص الرسالة</label><textarea id="messageFirstBody" class="form-control" rows="3" maxlength="5000" required placeholder="اكتب رسالتك..."></textarea>
         <button class="btn-primary" type="submit" style="width:auto;justify-self:start;">إرسال وفتح المحادثة</button>
@@ -2962,25 +2966,45 @@ async function renderStudentMessagesView(page) {
   let selected = null;
 
   if (isStaff) {
-    const studentsQuery = supabase.from("student_profiles").select("user_id,group_no,display_name").order("group_no");
-    const { data: students, error: studentsError } = await studentsQuery;
-    const select = page.querySelector("#messageStudent");
-    if (studentsError) select.innerHTML = `<option value="">تعذر تحميل الطلاب: ${escapeHtml(studentsError.message)}</option>`;
-    else {
-      const allowed = state.role === "owner" ? students : students.filter(s => Number(s.group_no) === Number(state.uploaderGroup));
-      select.innerHTML = `<option value="">اختر طالبًا...</option>` + allowed.map(s =>
-        `<option value="${escapeHtml(s.user_id)}" data-group="${s.group_no}">${escapeHtml(s.display_name || "طالب")} — G${s.group_no} — ${escapeHtml(s.user_id.slice(0,8))}</option>`
-      ).join("");
+    const { data: students, error: studentsError } = await supabase
+      .from("student_profiles").select("user_id,group_no,display_name").order("group_no");
+    const groupSelect = page.querySelector("#messageGroup");
+    const studentSelect = page.querySelector("#messageStudent");
+    let allowed = [];
+    if (studentsError) {
+      groupSelect.innerHTML = `<option value="">تعذر تحميل الأفواج: ${escapeHtml(studentsError.message)}</option>`;
+    } else {
+      allowed = (students || []).filter(s => Number.isInteger(Number(s.group_no)) && Number(s.group_no) >= 1 && Number(s.group_no) <= 10);
+      if (!canChooseAnyGroup) allowed = allowed.filter(s => Number(s.group_no) === Number(state.uploaderGroup));
+      const groups = [...new Set(allowed.map(s => Number(s.group_no)))].sort((a,b) => a-b);
+      groupSelect.innerHTML = `<option value="">اختر الفوج...</option>` + groups.map(g => `<option value="${g}">G${g}</option>`).join("");
+      if (!canChooseAnyGroup && groups.length === 1) {
+        groupSelect.value = String(groups[0]);
+        groupSelect.disabled = true;
+      }
     }
+    groupSelect.onchange = () => {
+      const g = Number(groupSelect.value);
+      const inGroup = allowed.filter(s => Number(s.group_no) === g);
+      studentSelect.disabled = !groupSelect.value;
+      studentSelect.innerHTML = !groupSelect.value
+        ? `<option value="">اختر الفوج أولًا</option>`
+        : `<option value="">اختر الطالب...</option>` + inGroup.map(s =>
+          `<option value="${escapeHtml(s.user_id)}">${escapeHtml(s.display_name || "طالب")}</option>`
+        ).join("");
+    };
+    if (!studentsError && groupSelect.value) groupSelect.dispatchEvent(new Event("change"));
     page.querySelector("#newStudentConversation").onsubmit = async e => {
       e.preventDefault();
       const feedback = page.querySelector("#newMessageFeedback");
-      const studentId = select.value;
-      const groupNo = Number(select.selectedOptions[0]?.dataset.group);
+      const studentId = studentSelect.value;
+      const groupNo = Number(groupSelect.value);
       const subject = page.querySelector("#messageSubject").value.trim();
       const body = page.querySelector("#messageFirstBody").value.trim();
       try {
-        if (!studentId || !Number.isInteger(groupNo)) throw new Error("اختر طالبًا صحيحًا.");
+        if (!Number.isInteger(groupNo) || groupNo < 1 || groupNo > 10) throw new Error("اختر الفوج أولًا.");
+        if (!studentId || !allowed.some(s => s.user_id === studentId && Number(s.group_no) === groupNo)) throw new Error("اختر طالبًا من الفوج المحدد.");
+        if (!subject || !body) throw new Error("أدخل موضوع الرسالة ونصها.");
         const { data: conv, error: convError } = await supabase.from("student_conversations")
           .insert({ student_id: studentId, group_no: groupNo, subject, created_by: state.user.id })
           .select("id,student_id,group_no,subject,created_at,updated_at").single();
