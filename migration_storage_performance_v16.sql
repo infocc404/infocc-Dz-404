@@ -59,8 +59,8 @@ begin
         or coalesce(with_check, '') ~* 'auth\.(uid|jwt)\s*\('
       )
       and not (
-        coalesce(qual, '') ~* '\\(\\s*select\\s+\\(*\\s*auth\\.(uid|jwt)'
-        or coalesce(with_check, '') ~* '\\(\\s*select\\s+\\(*\\s*auth\\.(uid|jwt)'
+        coalesce(qual, '') ~* '\(\s*select\s+\(*\s*auth\.(uid|jwt)'
+        or coalesce(with_check, '') ~* '\(\s*select\s+\(*\s*auth\.(uid|jwt)'
       )
   loop
     v_qual := case when p.qual is null then null else
