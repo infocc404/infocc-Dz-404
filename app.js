@@ -1259,7 +1259,7 @@ function dispatchRoute(hash) {
 
   // #/admin (owner and admin)
   if (hash === "#/admin") {
-    if (state.role !== "owner" && state.role !== "admin") {
+    if (state.role !== "owner") {
       renderAccessDenied(page);
       return;
     }
@@ -3078,8 +3078,8 @@ async function renderAdminView(page) {
     </div>
     ` : ""}
 
-    <!-- Card 1: Add Section Head (owner and admin; admins cannot manage admins) -->
-    <div class="content-card" style="${state.role === "owner" || state.role === "admin" ? "" : "display:none;"}">
+    <!-- Card 1: Add Section Head (owner only) -->
+    <div class="content-card" style="${state.role === "owner" ? "" : "display:none;"}">
       <h3 style="font-size: 16px; font-weight: 600; color: var(--brown-dark); margin-bottom: 12px;">إضافة رئيس قسم</h3>
       <div id="addHeadAlertError" class="auth-error-box"></div>
       <div id="addHeadAlertSuccess" class="auth-success-box"></div>
@@ -3103,10 +3103,10 @@ async function renderAdminView(page) {
       </form>
     </div>
 
-    <!-- Card 2: Section Heads Table (owner and admin) -->
-    <div class="content-card" style="${state.role === "owner" || state.role === "admin" ? "" : "display:none;"}">
+    <!-- Card 2: Section Heads Table (owner only) -->
+    <div class="content-card" style="${state.role === "owner" ? "" : "display:none;"}">
       <h3 style="font-size: 16px; font-weight: 600; color: var(--brown-dark); margin-bottom: 8px;">رؤساء الأقسام</h3>
-      <p style="font-size: 12px; color: var(--muted); margin-bottom: 14px;">تغيير الدور يتطبق عند تسجيل الدخول القادم للمستخدم.</p>
+      <p style="font-size: 12px; color: var(--muted); margin-bottom: 14px;">إدارة وتعيين رؤساء الأقسام من اختصاص مالك المنصة فقط.</p>
       
       <div id="headsListTableWrapper">
         <div style="padding: 20px; text-align: center; color: var(--muted);">جاري تحميل القائمة...</div>
@@ -3167,8 +3167,8 @@ async function renderAdminView(page) {
 
   addForm.onsubmit = async (e) => {
     e.preventDefault();
-    if (state.role !== "owner" && state.role !== "admin") {
-      alertErr.textContent = "تعيين رؤساء الأقسام متاح للمالك والمشرف فقط.";
+    if (state.role !== "owner") {
+      alertErr.textContent = "تعيين رؤساء الأقسام متاح لمالك المنصة فقط.";
       alertErr.style.display = "block";
       return;
     }
@@ -3238,7 +3238,7 @@ async function renderAdminView(page) {
   };
 
   async function loadRealHeadsTable() {
-    if (state.role !== "owner" && state.role !== "admin") return;
+    if (state.role !== "owner") return;
     const wrapper = document.getElementById("headsListTableWrapper");
     if (!wrapper) return;
 
