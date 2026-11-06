@@ -2946,7 +2946,7 @@ async function renderStudentMessagesView(page) {
   page.innerHTML = `
     <div class="page-banner"><h2>المراسلة مع الطلاب</h2><p>${isStaff ? "تواصل خاص مع الطلاب. رئيس القسم يستطيع مراسلة طلاب فوجه فقط." : "اقرأ رسائل الإدارة أو المشرف المسؤول عن فوجك وأرسل ردك."}</p></div>
     ${isStaff ? `<div class="content-card" style="margin-bottom:16px;">
-      <h3 style="font-size:16px;margin-bottom:12px;color:var(--brown-dark);">بدء محادثة مع طالب</h3>
+      <h3 style="font-size:16px;margin-bottom:6px;color:var(--brown-dark);">إرسال رسالة إلى طالب أو فوج كامل</h3><p style="font-size:12px;color:var(--muted);margin-bottom:8px;">اختر طالبًا واحدًا أو «الفوج كاملًا» لإرسال رسالة خاصة لكل طالب في الفوج.</p>
       <form id="newStudentConversation" style="display:grid;gap:10px;">
         <label class="form-label" for="messageGroup">أولًا: اختر الفوج</label>
         <select id="messageGroup" class="form-control" required><option value="">اختر الفوج...</option></select>
@@ -2954,7 +2954,7 @@ async function renderStudentMessagesView(page) {
         <select id="messageStudent" class="form-control" required disabled><option value="">اختر الفوج أولًا</option></select>
         <label class="form-label">موضوع الرسالة</label><input id="messageSubject" class="form-control" maxlength="160" required placeholder="موضوع مختصر">
         <label class="form-label">نص الرسالة</label><textarea id="messageFirstBody" class="form-control" rows="3" maxlength="5000" required placeholder="اكتب رسالتك..."></textarea>
-        <button class="btn-primary" type="submit" style="width:auto;justify-self:start;">إرسال وفتح المحادثة</button>
+        <button class="btn-primary" type="submit" style="width:auto;justify-self:start;">إرسال الرسالة</button>
       </form><div id="newMessageFeedback" role="status" style="font-size:13px;margin-top:8px;"></div>
     </div>` : ""}
     <div class="content-card"><h3 style="font-size:17px;margin-bottom:12px;color:var(--brown-dark);">المحادثات</h3><div id="studentConversationList">جارٍ تحميل المحادثات...</div></div>
