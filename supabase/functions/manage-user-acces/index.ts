@@ -25,7 +25,7 @@ export default {
 
       const { data: target, error: targetError } = await ctx.supabaseAdmin.auth.admin.getUserById(userId);
       if (targetError || !target?.user) return Response.json({ error: "لم يتم العثور على الحساب." }, { status: 404 });
-      if (target.user.id === ctx.user.id || (target.user.email ?? "").toLowerCase() === "locoviber16@gmail.com") {
+      if ((target.user.email ?? "").toLowerCase() === "locoviber16@gmail.com") {
         return Response.json({ error: "حساب المالك محمي ولا يمكن إيقافه." }, { status: 403 });
       }
 
