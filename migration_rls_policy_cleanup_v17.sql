@@ -47,6 +47,28 @@ create policy "owner deletes student profiles"
 on public.student_profiles for delete to authenticated
 using (public.is_account_active() and public.current_role() = 'owner');
 
+-- Combine self/owner reads and assigned-group uploader reads into one policy.
+drop policy if exists "students read own profile or owner" on public.student_profiles;
+drop policy if exists "uploaders read students in assigned group" on public.student_profiles;
+create policy "authorized student profile reads"
+on public.student_profiles for select to authenticated
+using (
+  public.is_account_active()
+  and (
+    user_id = (select auth.uid())
+    or public.current_role() = 'owner'
+    or (
+      public.current_role() = 'uploader'
+      and exists (
+        select 1
+        from public.uploaders up
+        where up.user_id = (select auth.uid())
+          and up.group_no = student_profiles.group_no
+      )
+    )
+  )
+);
+
 -- Section-head role assignments are owner-managed, not admin-managed.
 drop policy if exists "uploaders managed by owner or admin" on public.uploaders;
 drop policy if exists "uploaders read own or owner" on public.uploaders;
