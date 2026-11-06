@@ -2990,7 +2990,7 @@ async function renderStudentMessagesView(page) {
       studentSelect.disabled = !groupSelect.value;
       studentSelect.innerHTML = !groupSelect.value
         ? `<option value="">اختر الفوج أولًا</option>`
-        : `<option value="">اختر الطالب...</option>` + inGroup.map(s => {
+        : `<option value="">اختر الطالب...</option><option value="__all__">الفوج كاملًا — إرسال إلى جميع الطلاب (${inGroup.length})</option>` + inGroup.map(s => {
           const display = s.display_name || "طالب بدون اسم";
           const email = s.email || "لا يوجد بريد إلكتروني";
           return `<option value="${escapeHtml(s.user_id)}">${escapeHtml(display)} — ${escapeHtml(email)}</option>`;
@@ -3009,21 +3009,31 @@ async function renderStudentMessagesView(page) {
       const body = page.querySelector("#messageFirstBody").value.trim();
       try {
         if (!Number.isInteger(groupNo) || groupNo < 1 || groupNo > 10) throw new Error("اختر الفوج أولًا.");
-        if (!studentId || !allowed.some(s => s.user_id === studentId && Number(s.group_no) === groupNo)) throw new Error("اختر طالبًا من الفوج المحدد.");
+        const isBroadcast = studentId === "__all__";
+        if (!studentId) throw new Error("اختر طالبًا أو اختر «الفوج كاملًا».");
+        if (!isBroadcast && !allowed.some(s => s.user_id === studentId && Number(s.group_no) === groupNo)) throw new Error("اختر طالبًا من الفوج المحدد.");
         if (!subject || !body) throw new Error("أدخل موضوع الرسالة ونصها.");
-        const { data: conv, error: convError } = await supabase.from("student_conversations")
-          .insert({ student_id: studentId, group_no: groupNo, subject, created_by: state.user.id })
-          .select("id,student_id,group_no,subject,created_at,updated_at").single();
-        if (convError) throw convError;
-        const { error: msgError } = await supabase.from("student_messages").insert({
-          conversation_id: conv.id, sender_id: state.user.id, body
+        const { data: result, error: sendError } = await supabase.rpc("send_staff_student_message", {
+          p_group_no: groupNo,
+          p_student_id: isBroadcast ? null : studentId,
+          p_subject: subject,
+          p_body: body
         });
-        if (msgError) throw msgError;
+        if (sendError) throw sendError;
+        const sentCount = Number(result?.count || 0);
         page.querySelector("#messageFirstBody").value = "";
         page.querySelector("#messageSubject").value = "";
-        feedback.style.color = "var(--success,#28734a)"; feedback.textContent = "تم إرسال الرسالة.";
-        await loadConversations(); await openConversation(conv.id);
-      } catch (err) { feedback.style.color = "var(--danger,#a33b32)"; feedback.textContent = err.message || "تعذر إرسال الرسالة."; }
+        feedback.style.color = "var(--success,#28734a)";
+        feedback.textContent = isBroadcast
+          ? `تم إرسال الرسالة إلى ${sentCount} طالبًا في الفوج G${groupNo}. لكل طالب محادثة خاصة.`
+          : "تم إرسال الرسالة وفتح المحادثة.";
+        await loadConversations();
+        const firstConversationId = result?.conversation_ids?.[0];
+        if (!isBroadcast && firstConversationId) await openConversation(firstConversationId);
+      } catch (err) {
+        feedback.style.color = "var(--danger,#a33b32)";
+        feedback.textContent = err.message || "تعذر إرسال الرسالة.";
+      }
     };
   }
 
