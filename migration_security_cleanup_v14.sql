@@ -50,8 +50,30 @@ begin
 end;
 $function$;
 
--- Keep the account activity check callable because the current file RLS policy
--- includes anon in its role target; it returns false for unauthenticated sessions.
+-- File access is authenticated-only in this application. Preserve the same group rules,
+-- but remove anonymous SELECT access and its SECURITY DEFINER RPC exposure.
+drop policy if exists "authorized read files" on public.files;
+create policy "authorized read files"
+on public.files
+for select
+to authenticated
+using (
+  public.is_account_active()
+  and (
+    public.current_role() = any (array['owner'::text, 'admin'::text])
+    or ((group_no is null) and (path like 'common/%'))
+    or (
+      public.my_group_no() is not null
+      and (
+        group_no = public.my_group_no()
+        or path like ('g' || public.my_group_no() || '/%')
+      )
+    )
+  )
+);
+revoke execute on function public.is_account_active() from public, anon;
+grant execute on function public.is_account_active() to authenticated;
+
 -- Do not weaken the existing owner checks on owner_remove_admin / owner_set_user_suspended.
 revoke all on function public.owner_remove_admin(uuid) from public, anon;
 grant execute on function public.owner_remove_admin(uuid) to authenticated;
