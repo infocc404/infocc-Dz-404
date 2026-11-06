@@ -1426,3 +1426,42 @@ body { background: #f8f3eb; }
 @media (prefers-reduced-motion: reduce) {
   .login-page .auth-card.zoomed { transition: none; }
 }
+
+
+/* 2026 mobile usability pass: tighter controls, readable tables and safe-area spacing */
+.auth-help-note { display:block; color:var(--muted); font-size:12px; line-height:1.8; margin:8px 0 12px; }
+.onboarding-page { min-height:100svh; padding:clamp(14px,3vw,32px); }
+.onboarding-card { width:min(100%,520px); }
+.onboarding-email { padding:10px 12px; margin-bottom:18px; border:1px solid var(--line); border-radius:10px; background:var(--soft); color:var(--muted); font-size:13px; overflow-wrap:anywhere; }
+.onboarding-card .btn-primary { width:100%; min-height:48px; }
+button, .btn-primary, .btn-secondary, .nav-link { touch-action:manipulation; }
+button, .btn-primary, .btn-secondary { min-height:40px; }
+@media (max-width:768px) {
+  .app-main { margin-right:0; width:100%; }
+  .app-topbar { padding:0 12px; gap:8px; min-height:58px; }
+  .mobile-menu-btn { min-width:42px; min-height:42px; padding:8px; }
+  .page-body { padding:14px 12px calc(22px + env(safe-area-inset-bottom)); }
+  .content-card { padding:14px; border-radius:14px; }
+  .page-banner { padding:18px 15px; }
+  .data-table { min-width:620px; }
+  .table-responsive { max-width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .pdf-viewer-wrap { width:100%; min-width:0; }
+  .pdf-viewer-toolbar { position:relative; }
+  .pdf-toolbar-group { gap:6px; }
+  .pdf-toolbar-group button { min-height:42px; }
+  .pdf-canvas-container { max-height:72svh; min-height:55svh; padding:10px 6px; }
+  .pdf-canvas-container canvas { max-width:none; }
+  .auth-container { min-height:100svh; padding:16px 12px calc(20px + env(safe-area-inset-bottom)); }
+  .auth-wrapper { width:100%; max-width:460px; }
+  .auth-card { padding:20px 16px; }
+  .form-control { min-height:46px; font-size:16px; }
+  .auth-tabs { gap:6px; }
+  .auth-tab { min-height:44px; }
+}
+@media (max-width:420px) {
+  .pdf-toolbar-group { width:100%; justify-content:center; }
+  .pdf-toolbar-group strong { max-width:100%; overflow-wrap:anywhere; }
+  .pdf-viewer-toolbar { padding:9px 8px; }
+  .onboarding-card { padding:18px 14px; }
+  .auth-panel-banner h1 { font-size:25px; }
+}

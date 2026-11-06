@@ -44,6 +44,7 @@ const state = {
   role: "student", // "owner" | "uploader" | "student" (read-only from database)
   uploaderGroup: null, // 1..10 if uploader
   studentGroup: null, // read-only from the database (student_profiles)
+  studentDisplayName: null,
   currentRoute: "#/",
   redirectAfterLogin: null,
   filesCache: [],
@@ -167,6 +168,7 @@ function renderTeacherDisplayHtml(resolvedTeacher, kind = "cours", subjectId = "
 
 // 5. AUTH & ROLE INITIALIZATION
 async function fetchRoleAndGroup() {
+  state.studentDisplayName = null;
   try {
     const { data, error } = await supabase.rpc("my_role");
     if (error) {
@@ -197,13 +199,21 @@ async function fetchRoleAndGroup() {
       state.uploaderGroup = null;
       state.studentGroup = null;
     }
-    // Explicit fallback: some older my_role deployments may return no assigned group.
-    // Read only the current user's own profile; RLS must enforce user_id = auth.uid().
-    if (state.role === "student" && !state.studentGroup && state.user?.id) {
+    // Read the student's own profile after the role RPC. The SQL onboarding
+    // function is the only writer for a newly confirmed student's group/name.
+    if (state.role === "student" && state.user?.id) {
       const { data: profile, error: profileError } = await supabase
-        .from("student_profiles").select("group_no").eq("user_id", state.user.id).maybeSingle();
-      if (!profileError && Number(profile?.group_no) >= 1 && Number(profile?.group_no) <= 10) {
-        state.studentGroup = Number(profile.group_no);
+        .from("student_profiles")
+        .select("group_no, display_name")
+        .eq("user_id", state.user.id)
+        .maybeSingle();
+      if (!profileError && profile) {
+        const g = Number(profile.group_no);
+        state.studentGroup = g >= 1 && g <= 10 ? g : null;
+        state.studentDisplayName = profile.display_name ? String(profile.display_name) : null;
+      } else {
+        state.studentGroup = null;
+        state.studentDisplayName = null;
       }
     }
   } catch (err) {
@@ -254,6 +264,11 @@ supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" && state.renderedUserId === state.user.id) return;
 
       await fetchRoleAndGroup();
+      if (state.role === "student" && (!state.studentGroup || !state.studentDisplayName)) {
+        state.renderedUserId = state.user.id;
+        renderStudentOnboarding();
+        return;
+      }
       await Promise.all([loadFilesCache(), loadTeacherInfoCache()]);
       state.renderedUserId = state.user.id;
 
@@ -267,6 +282,7 @@ supabase.auth.onAuthStateChange((event, session) => {
       state.role = "student";
       state.uploaderGroup = null;
       state.studentGroup = null;
+      state.studentDisplayName = null;
       state.filesCache = [];
       state.teacherInfoCache = [];
       location.hash = "#/";
@@ -530,13 +546,7 @@ function renderLoggedOut(errorMessage = "", successMessage = "") {
               <input type="password" id="signupPass" class="form-control" placeholder="6 أحرف على الأقل" required minlength="6">
             </div>
 
-            <div class="form-group">
-              <label class="form-label" for="signupGroup">فوجك الدراسي *</label>
-              <select id="signupGroup" class="form-control mono" required>
-                <option value="" disabled selected>اختر فوجك (إلزامي)...</option>
-                ${[1,2,3,4,5,6,7,8,9,10].map(g => `<option value="${g}">G${g}</option>`).join("")}
-              </select>
-            </div>
+            <p class="auth-help-note">بعد تأكيد بريدك الإلكتروني، ستظهر لك صفحة لاختيار اسم المستخدم والفوج الدراسي.</p>
 
             <button type="submit" class="btn-primary" id="signupSubmitBtn" style="margin-top: 10px;">
               إنشاء الحساب
@@ -602,14 +612,6 @@ function renderLoggedOut(errorMessage = "", successMessage = "") {
     e.preventDefault();
     const email = document.getElementById("signupEmail").value.trim();
     const pass = document.getElementById("signupPass").value;
-    const groupVal = document.getElementById("signupGroup").value;
-
-    if (!groupVal) {
-      alert("يرجى اختيار الفوج الدراسي (إلزامي).");
-      return;
-    }
-
-    const groupNo = parseInt(groupVal, 10);
     const btn = document.getElementById("signupSubmitBtn");
     btn.disabled = true;
     btn.textContent = "جاري الإنشاء...";
@@ -622,7 +624,7 @@ function renderLoggedOut(errorMessage = "", successMessage = "") {
       password: pass,
       options: {
         emailRedirectTo,
-        data: { group_no: groupNo }
+        data: {}
       }
     });
 
@@ -630,7 +632,7 @@ function renderLoggedOut(errorMessage = "", successMessage = "") {
       renderLoggedOut(translateAuthError(error.message));
     } else if (data?.user && !data?.session) {
       // Email confirmation is ON: the user must confirm before logging in.
-      renderLoggedOut("", "تم إنشاء الحساب. افتح رسالة التأكيد في بريدك (وتحقق من الرسائل غير المرغوب فيها) ثم سجّل الدخول.");
+      renderLoggedOut("", "تم إنشاء الحساب. افتح رسالة التأكيد في بريدك. بعد الضغط على الرابط ستظهر لك صفحة اختيار اسم المستخدم والفوج، ولن تحتاج إلى تسجيل الدخول مرة أخرى.");
     }
     // else: a session exists -> the auth listener opens the app by itself.
   };
@@ -656,6 +658,77 @@ function renderLoggedOut(errorMessage = "", successMessage = "") {
   };
 
   initLoginSelectZoom();
+}
+
+
+// 7.5 STUDENT PROFILE SETUP — shown after the email confirmation link signs in.
+function renderStudentOnboarding() {
+  const userEmail = state.user?.email || "";
+  rootEl.innerHTML = `
+    <div class="auth-container onboarding-page">
+      <div class="auth-wrapper">
+        <div class="auth-panel-banner">
+          <div class="logo-badge mono">info_cc_404</div>
+          <h1>أكمل إعداد حسابك</h1>
+          <p>خطوة واحدة قبل دخول منصة طلبة الإعلام الآلي</p>
+        </div>
+        <div class="auth-card onboarding-card">
+          <div class="onboarding-email" dir="ltr">${escapeHtml(userEmail)}</div>
+          <form id="studentOnboardingForm">
+            <div class="form-group">
+              <label class="form-label" for="studentDisplayName">اسم المستخدم</label>
+              <input id="studentDisplayName" class="form-control" type="text" minlength="2" maxlength="40"
+                autocomplete="nickname" placeholder="اكتب الاسم الذي تريد أن يظهر للطلاب" required>
+              <small class="auth-help-note">هذا الاسم سيظهر داخل الموقع بدل اسم بريدك الإلكتروني.</small>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="studentGroupChoice">الفوج الدراسي</label>
+              <select id="studentGroupChoice" class="form-control mono" required ${state.studentGroup ? "disabled" : ""}>
+                <option value="" disabled ${state.studentGroup ? "" : "selected"}>اختر فوجك</option>
+                ${Array.from({length:10},(_,i)=>`<option value="${i+1}" ${Number(state.studentGroup) === i+1 ? "selected" : ""}>G${i+1}</option>`).join("")}
+              </select>
+              ${state.studentGroup ? `<small class="auth-help-note">الفوج G${state.studentGroup} محفوظ مسبقًا في حسابك ولا يمكن تغييره من هذه الصفحة.</small>` : ""}
+            </div>
+            <div id="onboardingError" class="auth-error-box" role="alert" style="display:none;"></div>
+            <button class="btn-primary" id="saveStudentProfileBtn" type="submit">حفظ ومتابعة إلى الموقع</button>
+          </form>
+        </div>
+      </div>
+    </div>`;
+  const form = document.getElementById("studentOnboardingForm");
+  form.onsubmit = async (event) => {
+    event.preventDefault();
+    const name = document.getElementById("studentDisplayName").value.trim().replace(/\s+/g," ");
+    const group = Number(document.getElementById("studentGroupChoice").value);
+    const errorBox = document.getElementById("onboardingError");
+    const btn = document.getElementById("saveStudentProfileBtn");
+    if (name.length < 2 || name.length > 40 || !Number.isInteger(group) || group < 1 || group > 10) {
+      errorBox.textContent = "يرجى إدخال اسم من حرفين إلى 40 حرفًا واختيار فوج صحيح.";
+      errorBox.style.display = "block";
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = "جارٍ حفظ بياناتك...";
+    errorBox.style.display = "none";
+    const { error } = await supabase.rpc("complete_student_profile", {
+      p_display_name: name,
+      p_group_no: group
+    });
+    if (error) {
+      errorBox.textContent = "تعذر حفظ بياناتك: " + translateAuthError(error.message);
+      errorBox.style.display = "block";
+      btn.disabled = false;
+      btn.textContent = "حفظ ومتابعة إلى الموقع";
+      return;
+    }
+    state.studentGroup = group;
+    state.studentDisplayName = name;
+    await fetchRoleAndGroup();
+    await Promise.all([loadFilesCache(), loadTeacherInfoCache()]);
+    state.renderedUserId = state.user?.id || null;
+    location.hash = "#/";
+    renderApp();
+  };
 }
 
 // 8. PASSWORD RECOVERY SCREEN
@@ -737,6 +810,7 @@ function renderApp() {
       state.role = "student";
       state.uploaderGroup = null;
       state.studentGroup = null;
+      state.studentDisplayName = null;
       state.filesCache = [];
       state.teacherInfoCache = [];
       state.renderedUserId = null;
@@ -837,8 +911,8 @@ function renderApp() {
             <span class="role-badge ${state.role}">
               ${getRoleBadgeText(state.role, state.uploaderGroup)}
             </span>
-            <div class="user-avatar-circle" id="topbarAvatar" title="${escapeHtml(state.user.email)}">
-              ${escapeHtml(state.user.email?.[0]?.toUpperCase() || "U")}
+            <div class="user-avatar-circle" id="topbarAvatar" title="${escapeHtml(state.studentDisplayName || state.user.email)}">
+              ${escapeHtml((state.studentDisplayName || state.user.email)?.[0]?.toUpperCase() || "U")}
             </div>
           </div>
         </header>
@@ -1275,7 +1349,7 @@ function renderAccessDenied(page) {
 // 12. PAGE: HOME (#/)
 function renderHomeView(page) {
   const sg = state.studentGroup;
-  const userLabel = state.user.email?.split("@")[0] || "طالب";
+  const userLabel = state.studentDisplayName || state.user.email?.split("@")[0] || "طالب";
   const cards = [
     { href: "#/search", icon: "file", title: "ملفاتي", desc: "وصول سريع إلى ملفاتك الدراسية", tint: "sand" },
     { href: "#/teachers", icon: "users", title: "الأساتذة", desc: "قائمة الأساتذة ومعلوماتهم", tint: "green" },
@@ -2478,6 +2552,7 @@ async function loadPdfWithPdfJs(pdfUrl) {
   let renderToken = 0;
   let observer = null;
   let pageEls = [];
+  let selectedPageNumber = 1;
   let lastWidth = container.clientWidth;
 
   const indicator = document.getElementById("pdfPageIndicator");
@@ -2589,12 +2664,19 @@ async function loadPdfWithPdfJs(pdfUrl) {
 
   const goTo = (n) => {
     const entry = pageEls[Math.max(1, Math.min(total, n)) - 1];
-    if (entry) container.scrollTo({ top: entry.el.offsetTop - 10, behavior: "smooth" });
+    if (entry) {
+      selectedPageNumber = entry.num;
+      updateIndicator(selectedPageNumber);
+      container.scrollTo({ top: entry.el.offsetTop - 10, behavior: "smooth" });
+    }
   };
 
-  container.addEventListener("scroll", () => updateIndicator(currentPage()), { passive: true });
-  document.getElementById("pdfPrevPage").onclick = () => goTo(currentPage() - 1);
-  document.getElementById("pdfNextPage").onclick = () => goTo(currentPage() + 1);
+  container.addEventListener("scroll", () => {
+    selectedPageNumber = currentPage();
+    updateIndicator(selectedPageNumber);
+  }, { passive: true });
+  document.getElementById("pdfPrevPage").onclick = () => goTo(selectedPageNumber - 1);
+  document.getElementById("pdfNextPage").onclick = () => goTo(selectedPageNumber + 1);
   document.getElementById("pdfZoomIn").onclick = () => { zoom = Math.min(3, +(zoom + 0.25).toFixed(2)); layout(); };
   document.getElementById("pdfZoomOut").onclick = () => { zoom = Math.max(0.5, +(zoom - 0.25).toFixed(2)); layout(); };
   document.getElementById("pdfZoomReset").onclick = () => { zoom = 1; layout(); };
@@ -3545,7 +3627,8 @@ function renderAccountView(page) {
           ${escapeHtml(state.user.email?.[0]?.toUpperCase() || "U")}
         </div>
         <div>
-          <h3 style="font-size:18px;font-weight:600;color:var(--brown-dark);" class="mono">${escapeHtml(state.user.email)}</h3>
+          <h3 style="font-size:18px;font-weight:600;color:var(--brown-dark);">${escapeHtml(state.studentDisplayName || state.user.email)}</h3>
+          <div class="mono" dir="ltr" style="font-size:12px;color:var(--muted);margin-top:4px;">${escapeHtml(state.user.email)}</div>
           <span class="role-badge ${state.role}" style="display:inline-block;margin-top:4px;">${getRoleBadgeText(state.role,state.uploaderGroup)}</span>
         </div>
       </div>
