@@ -2,6 +2,20 @@
 -- Safe to re-run. Existing rows are preserved.
 begin;
 
+-- Make this migration repeatable after partial or previous successful runs.
+drop policy if exists "owner or student reads deletion requests" on public.account_deletion_requests;
+drop policy if exists "owner updates deletion requests" on public.account_deletion_requests;
+drop policy if exists "owner deletes deletion requests" on public.account_deletion_requests;
+drop policy if exists "students and staff read group requests" on public.group_change_requests;
+drop policy if exists "owner inserts student profiles" on public.student_profiles;
+drop policy if exists "owner updates student profiles" on public.student_profiles;
+drop policy if exists "owner deletes student profiles" on public.student_profiles;
+drop policy if exists "authorized student profile reads" on public.student_profiles;
+drop policy if exists "owner inserts uploaders" on public.uploaders;
+drop policy if exists "owner updates uploaders" on public.uploaders;
+drop policy if exists "owner deletes uploaders" on public.uploaders;
+drop policy if exists "users and staff read support reports" on public.support_reports;
+
 -- Account deletion requests: students may create/read their own requests;
 -- only the owner may read all requests, update status, or delete requests.
 drop policy if exists "owner manages deletion requests" on public.account_deletion_requests;
