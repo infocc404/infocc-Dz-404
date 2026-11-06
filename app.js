@@ -1447,6 +1447,7 @@ function renderHomeView(page) {
   const userLabel = state.studentDisplayName || state.user.email?.split("@")[0] || "طالب";
   const cards = [
     { href: "#/search", icon: "file", title: "ملفاتي", desc: "وصول سريع إلى ملفاتك الدراسية", tint: "sand" },
+    { href: "#/exams", icon: "exam", title: "أرشيف الامتحانات", desc: "امتحانات سابقة حسب المادة والفصل والفوج", tint: "peach" },
     { href: "#/teachers", icon: "users", title: "الأساتذة", desc: "قائمة الأساتذة ومعلوماتهم", tint: "green" },
     { href: "#/horaire", icon: "calendar", title: "الجدول الزمني", desc: "مواعيد المحاضرات والحصص", tint: "peach" },
     { href: "#/groupes", icon: "book", title: "المواد الدراسية", desc: "تصفح المواد حسب الفوج", tint: "blue" },
@@ -1455,6 +1456,7 @@ function renderHomeView(page) {
   ];
   const icons = {
     file: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.75h8l4 4v12.5H6z"/><path d="M14 3.75v4h4M9 12h6M9 15.5h6"/></svg>',
+    exam: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7"/></svg>',
     users: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19v-1.4A4.6 4.6 0 0 1 8.1 13h1.8a4.6 4.6 0 0 1 4.6 4.6V19zM16 5.5a3 3 0 0 1 0 5.8M17 13.5a4.3 4.3 0 0 1 3.5 4.2V19h-3"/></svg>',
     calendar: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M8 3.5v4M16 3.5v4M4 9.5h16M8 13h2M13 13h3M8 16.5h2"/></svg>',
     book: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A3 3 0 0 1 7 3h5v17H7a3 3 0 0 0-3 1zM20 5.5A3 3 0 0 0 17 3h-5v17h5a3 3 0 0 1 3 1z"/><path d="M7 7h2M15 7h2"/></svg>',
