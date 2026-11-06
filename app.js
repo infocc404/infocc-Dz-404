@@ -2966,18 +2966,19 @@ async function renderStudentMessagesView(page) {
   let selected = null;
 
   if (isStaff) {
-    const { data: students, error: studentsError } = await supabase
-      .from("student_profiles").select("user_id,group_no,display_name").order("group_no");
+    const { data: students, error: studentsError } = await supabase.rpc("list_students_for_messaging");
     const groupSelect = page.querySelector("#messageGroup");
     const studentSelect = page.querySelector("#messageStudent");
     let allowed = [];
     if (studentsError) {
-      groupSelect.innerHTML = `<option value="">تعذر تحميل الأفواج: ${escapeHtml(studentsError.message)}</option>`;
+      groupSelect.innerHTML = `<option value="">تعذر تحميل قائمة الطلاب: ${escapeHtml(studentsError.message)}</option>`;
     } else {
-      allowed = (students || []).filter(s => Number.isInteger(Number(s.group_no)) && Number(s.group_no) >= 1 && Number(s.group_no) <= 10);
-      if (!canChooseAnyGroup) allowed = allowed.filter(s => Number(s.group_no) === Number(state.uploaderGroup));
-      const groups = [...new Set(allowed.map(s => Number(s.group_no)))].sort((a,b) => a-b);
-      groupSelect.innerHTML = `<option value="">اختر الفوج...</option>` + groups.map(g => `<option value="${g}">G${g}</option>`).join("");
+      allowed = students || [];
+      const groups = canChooseAnyGroup ? [1,2,3,4,5,6,7,8,9,10] : [Number(state.uploaderGroup)].filter(g => Number.isInteger(g) && g >= 1 && g <= 10);
+      groupSelect.innerHTML = `<option value="">اختر الفوج...</option>` + groups.map(g => {
+        const count = allowed.filter(s => Number(s.group_no) === g).length;
+        return `<option value="${g}">G${g}${count ? ` — ${count} طالب` : " — لا يوجد طلاب مسجلون في هذا الفوج"}</option>`;
+      }).join("");
       if (!canChooseAnyGroup && groups.length === 1) {
         groupSelect.value = String(groups[0]);
         groupSelect.disabled = true;
@@ -2989,9 +2990,14 @@ async function renderStudentMessagesView(page) {
       studentSelect.disabled = !groupSelect.value;
       studentSelect.innerHTML = !groupSelect.value
         ? `<option value="">اختر الفوج أولًا</option>`
-        : `<option value="">اختر الطالب...</option>` + inGroup.map(s =>
-          `<option value="${escapeHtml(s.user_id)}">${escapeHtml(s.display_name || "طالب")}</option>`
-        ).join("");
+        : `<option value="">اختر الطالب...</option>` + inGroup.map(s => {
+          const display = s.display_name || "طالب بدون اسم";
+          const email = s.email || "لا يوجد بريد إلكتروني";
+          return `<option value="${escapeHtml(s.user_id)}">${escapeHtml(display)} — ${escapeHtml(email)}</option>`;
+        }).join("");
+      if (groupSelect.value && !inGroup.length) {
+        studentSelect.innerHTML = `<option value="">لا يوجد طلاب مسجلون في هذا الفوج بعد</option>`;
+      }
     };
     if (!studentsError && groupSelect.value) groupSelect.dispatchEvent(new Event("change"));
     page.querySelector("#newStudentConversation").onsubmit = async e => {
