@@ -1465,3 +1465,88 @@ button, .btn-primary, .btn-secondary { min-height:40px; }
   .onboarding-card { padding:18px 14px; }
   .auth-panel-banner h1 { font-size:25px; }
 }
+
+
+/* User-selectable dark appearance. The warm light theme remains the default. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #171411;
+  --card: #211c17;
+  --ink: #f2e9de;
+  --muted: #b9a998;
+  --line: #40352b;
+  --brown: #c39a72;
+  --brown-dark: #e2c3a2;
+  --soft: #382d23;
+  --cream: #211c17;
+}
+:root[data-theme="dark"] body {
+  background: var(--bg);
+  color: var(--ink);
+}
+:root[data-theme="dark"] .app-container,
+:root[data-theme="dark"] .app-main,
+:root[data-theme="dark"] .page-body {
+  background: var(--bg);
+  color: var(--ink);
+}
+:root[data-theme="dark"] .content-card,
+:root[data-theme="dark"] .home-feature-card,
+:root[data-theme="dark"] .home-about,
+:root[data-theme="dark"] .home-shortcuts,
+:root[data-theme="dark"] .page-banner,
+:root[data-theme="dark"] .auth-card,
+:root[data-theme="dark"] .notification-item,
+:root[data-theme="dark"] .search-results-dropdown {
+  background: var(--card) !important;
+  color: var(--ink);
+  border-color: var(--line) !important;
+}
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] .form-control,
+:root[data-theme="dark"] .search-input {
+  background: #171411;
+  color: var(--ink);
+  border-color: var(--line);
+}
+:root[data-theme="dark"] .data-table th,
+:root[data-theme="dark"] .data-table td,
+:root[data-theme="dark"] hr {
+  border-color: var(--line);
+}
+:root[data-theme="dark"] .data-table th {
+  background: #30271f;
+  color: var(--brown-dark);
+}
+:root[data-theme="dark"] .app-topbar {
+  background: #211c17;
+  border-color: var(--line);
+}
+:root[data-theme="dark"] .app-sidebar {
+  background: #211c17;
+  border-color: var(--line);
+}
+:root[data-theme="dark"] .nav-link {
+  color: #e6d8c8;
+}
+:root[data-theme="dark"] .nav-link:hover,
+:root[data-theme="dark"] .nav-link.active {
+  background: #382d23;
+  color: #f3d7b8;
+}
+:root[data-theme="dark"] .home-feature-desc,
+:root[data-theme="dark"] .notification-body,
+:root[data-theme="dark"] .page-banner p,
+:root[data-theme="dark"] .home-about-copy p {
+  color: var(--muted);
+}
+:root[data-theme="dark"] .btn-secondary {
+  background: #30271f;
+  color: var(--ink);
+  border-color: var(--line);
+}
+:root[data-theme="dark"] .exam-archive-card {
+  background: var(--card) !important;
+}
