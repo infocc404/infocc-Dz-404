@@ -913,6 +913,7 @@ function renderApp() {
           </div>
 
           <div class="topbar-right-info">
+            <button type="button" id="themeToggleBtn" class="btn-secondary" aria-label="تبديل الوضع الليلي" title="تبديل الوضع الليلي" style="width:auto;padding:8px 11px;">الوضع الليلي</button>
             <button type="button" id="notificationBellBtn" class="notification-bell" aria-label="الإشعارات" title="الإشعارات" style="position:relative;border:1px solid #e2d2bf;background:#fffaf3;color:#684b32;border-radius:12px;padding:9px 12px;cursor:pointer;font:inherit;min-width:44px;">
               <svg class="bell-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span id="notificationUnreadCount" style="display:none;position:absolute;top:-6px;left:-6px;background:#a33b2f;color:white;border-radius:20px;min-width:18px;height:18px;padding:0 4px;font-size:11px;line-height:18px;text-align:center;"></span>
             </button>
@@ -961,7 +962,22 @@ function listedUserId(user) {
   return user?.id ?? user?.user_id ?? null;
 }
 
+function applyThemePreference(theme) {
+  const selected = theme === "dark" ? "dark" : "light";
+  document.documentElement.dataset.theme = selected;
+  try { localStorage.setItem("info-cc-404-theme", selected); } catch (_) {}
+  const button = document.getElementById("themeToggleBtn");
+  if (button) {
+    button.textContent = selected === "dark" ? "الوضع الفاتح" : "الوضع الليلي";
+    button.setAttribute("aria-pressed", selected === "dark" ? "true" : "false");
+  }
+}
+
 function attachShellEvents() {
+  const savedTheme = (() => { try { return localStorage.getItem("info-cc-404-theme") || "light"; } catch (_) { return "light"; } })();
+  applyThemePreference(savedTheme);
+  const themeButton = document.getElementById("themeToggleBtn");
+  if (themeButton) themeButton.onclick = () => applyThemePreference(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
   const sidebar = document.getElementById("appSidebar");
   const backdrop = document.getElementById("sidebarBackdrop");
   const menuBtn = document.getElementById("mobileMenuBtn");
