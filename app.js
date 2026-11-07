@@ -4679,6 +4679,10 @@ function updateSidebarActiveRoute(hash) {
 window.addEventListener("hashchange", () => {
   if (recoveryMode) return;
   const hash = normalizeHash(location.hash);
+  if (hash !== "#/messages" && activeGroupChatChannel) {
+    supabase.removeChannel(activeGroupChatChannel);
+    activeGroupChatChannel = null;
+  }
   if (!hash.startsWith("#/")) return;
   if (!state.user) {
     if (hash !== "#/") {
