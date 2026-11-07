@@ -2301,3 +2301,68 @@ body, .app-container { background-color: #e7ddcf; }
   #binaryRainCanvas { opacity: .5; }
   .nav-section-toggle { min-height: 46px; }
 }
+
+
+
+/* Group chat and private inbox — separate, warm, readable conversation surfaces */
+.group-chat-shell { margin-bottom: 22px; padding: 20px; }
+.group-chat-heading { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:14px; }
+.group-chat-heading h3,.private-inbox-list h3,.private-compose h3 { margin:0 0 5px; color:var(--brown-dark); font-size:17px; }
+.group-chat-tabs { display:flex; flex-wrap:wrap; gap:8px; padding:10px; border:1px solid var(--line); border-radius:13px; background:#f3e8da; }
+.group-chat-tab { min-width:72px; padding:9px 15px; border:1px solid #dfcbb5; border-radius:10px; background:#fffaf3; color:#735337; font:600 13px var(--font-main); cursor:pointer; }
+.group-chat-tab.active { background:#8d6543; border-color:#8d6543; color:#fffaf3; box-shadow:0 3px 10px rgba(91,62,37,.12); }
+.group-chat-room-title { margin:15px 2px 10px; color:var(--brown-dark); font-weight:700; font-size:15px; }
+.group-chat-messages { display:flex; flex-direction:column; gap:10px; min-height:300px; max-height:55vh; overflow-y:auto; padding:16px; border:1px solid var(--line); border-radius:14px; background:rgba(250,245,237,.92); }
+.group-chat-message { align-self:flex-start; width:min(78%,650px); padding:11px 14px; border:1px solid #e5d7c6; border-radius:14px 14px 14px 4px; background:#fffdf9; box-shadow:0 2px 8px rgba(83,57,34,.035); }
+.group-chat-message.mine { align-self:flex-end; border-color:#d8c1a5; border-radius:14px 14px 4px 14px; background:#efe1cf; }
+.group-chat-message-meta { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:5px; color:#79583a; font-size:12px; }
+.group-chat-message-meta time,.private-message-bubble time { color:#9b8875; font-size:10px; white-space:nowrap; }
+.group-chat-message p { margin:0; color:#5f4935; line-height:1.8; white-space:pre-wrap; overflow-wrap:anywhere; font-size:13px; }
+.group-chat-empty { margin:auto; padding:30px 12px; text-align:center; color:var(--muted); }
+.group-chat-empty strong { display:block; color:var(--brown-dark); margin-bottom:6px; }
+.group-chat-empty p { margin:0; font-size:12px; }
+.group-chat-composer { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:end; margin-top:12px; }
+.group-chat-composer .btn-primary { min-width:100px; min-height:44px; }
+.group-chat-composer textarea { min-height:44px; resize:vertical; }
+.private-inbox-panel { margin-top:20px; padding:0; overflow:hidden; }
+.private-inbox-panel > summary { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:17px 20px; cursor:pointer; list-style:none; background:#eee1d1; color:#68472e; font-weight:700; }
+.private-inbox-panel > summary::-webkit-details-marker { display:none; }
+.private-inbox-panel > summary::after { content:"＋"; font-size:18px; color:#8d6543; }
+.private-inbox-panel[open] > summary::after { content:"−"; }
+.private-inbox-panel > summary small { margin-inline-start:auto; color:#927a62; font-size:11px; font-weight:400; }
+.private-compose,.private-inbox-list { padding:18px 20px; }
+.private-compose { border-bottom:1px solid var(--line); background:rgba(246,239,229,.65); }
+.private-inbox-list > h3 { margin-bottom:12px; }
+.private-inbox-list #studentConversationList { display:grid; gap:9px; }
+.private-thread-btn { display:flex; flex-direction:column; align-items:flex-start; gap:5px; width:100%; text-align:right; }
+.private-thread-btn small,.private-broadcast-children button small { display:block; color:var(--muted); font-size:11px; margin-top:3px; }
+.private-broadcast-group { border:1px solid var(--line); border-radius:12px; background:#fffaf3; overflow:hidden; }
+.private-broadcast-group > summary { display:flex; justify-content:space-between; gap:12px; padding:13px 15px; cursor:pointer; color:#68472e; list-style:none; }
+.private-broadcast-group > summary::-webkit-details-marker { display:none; }
+.private-broadcast-group > summary small { color:var(--muted); font-size:11px; }
+.private-broadcast-children { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px; padding:12px; border-top:1px solid var(--line); }
+.private-broadcast-children button { text-align:right; }
+.private-conversation-detail { margin:0 20px 20px; padding:16px; border:1px solid var(--line); border-radius:13px; background:#f8f0e6; }
+.private-conversation-detail h3 { margin:0 0 5px; color:var(--brown-dark); }
+.private-message-thread { display:flex; flex-direction:column; gap:9px; max-height:360px; overflow:auto; padding:10px 0; }
+.private-message-bubble { align-self:flex-start; width:min(82%,620px); padding:11px 13px; border:1px solid var(--line); border-radius:12px 12px 12px 4px; background:#fffdf9; }
+.private-message-bubble.mine { align-self:flex-end; background:#efe1cf; }
+.private-message-bubble strong { color:#79583a; font-size:12px; }
+.private-message-bubble p { margin:5px 0; color:#5f4935; white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.7; }
+.private-message-bubble time { display:block; text-align:left; }
+.private-reply-form { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:9px; align-items:end; margin-top:10px; }
+.poll-section { margin-top:30px !important; padding:20px; border-top:4px solid #b8895b; background:rgba(255,250,243,.98); }
+.poll-section > h3 { font-size:19px; color:var(--brown-dark); margin-bottom:6px; }
+.poll-section > .learning-hint { margin-bottom:16px; }
+@media(max-width:650px) {
+  .group-chat-shell { padding:13px; }
+  .group-chat-heading { align-items:flex-start; }
+  .group-chat-messages { min-height:260px; max-height:58vh; padding:10px; }
+  .group-chat-message,.private-message-bubble { width:92%; }
+  .group-chat-composer,.private-reply-form { grid-template-columns:1fr; }
+  .group-chat-composer .btn-primary { width:100%; }
+  .private-inbox-panel > summary { align-items:flex-start; flex-direction:column; gap:5px; }
+  .private-inbox-panel > summary small { margin:0; }
+  .private-compose,.private-inbox-list { padding:14px; }
+  .private-conversation-detail { margin:0 12px 14px; padding:12px; }
+}
