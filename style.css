@@ -2126,3 +2126,106 @@ body { background:#fbf7f1; color:#302319; }
 .poll-result-row .progress-track{grid-column:1/-1;margin:0;}
 .poll-vote-form{margin-top:10px;}
 @media(max-width:600px){.poll-card-heading{align-items:flex-start;flex-direction:column;}}
+
+/* ==========================================================================
+   FINAL CONSOLIDATION — consistent cream & caramel interface
+   This block intentionally centralizes the final shell and navigation rules.
+   ========================================================================== */
+:root {
+  --bg: #f8f1e7;
+  --card: #fffaf3;
+  --ink: #634a35;
+  --muted: #8c765f;
+  --line: #e9dac8;
+  --brown: #b8895b;
+  --brown-dark: #805638;
+  --soft: #f1e4d3;
+  --sidebar-w: 258px;
+  --radius: 14px;
+  --font-main: 'IBM Plex Sans Arabic', 'Readex Pro', sans-serif;
+  --shadow-soft: 0 8px 24px rgba(91, 62, 37, .055);
+}
+body { background: var(--bg); color: var(--ink); }
+.app-sidebar {
+  width: var(--sidebar-w);
+  background: #fffaf3;
+  border-left: 1px solid var(--line);
+  box-shadow: -8px 0 28px rgba(91, 62, 37, .045);
+}
+.sidebar-header {
+  min-height: 88px;
+  height: auto;
+  padding: 16px 18px;
+  flex-direction: row;
+  justify-content: flex-start;
+  text-align: right;
+  gap: 12px;
+  background: #fffaf3;
+  border-bottom: 1px solid var(--line);
+}
+.sidebar-cap-icon {
+  width: 42px; height: 42px; flex: 0 0 42px;
+  display: grid; place-items: center;
+  border-radius: 13px;
+  background: #f0e1ce;
+  color: #805638;
+}
+.sidebar-cap-icon svg { width: 27px; height: 27px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.sidebar-brand-name { color: #68472e; font-size: 16px; font-weight: 700; }
+.sidebar-brand-name small { display: block; color: #967d65; font: 500 10px/1.6 var(--font-main); }
+.sidebar-nav {
+  padding: 15px 12px 20px;
+  gap: 13px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.nav-section { display: flex; flex-direction: column; gap: 4px; }
+.nav-section-title {
+  padding: 7px 12px 4px;
+  color: #a18a72;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: .025em;
+}
+.nav-link {
+  min-height: 40px;
+  padding: 8px 11px;
+  gap: 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: #6b523c;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.nav-link .nav-icon { width: 18px; height: 18px; flex: 0 0 18px; fill: none; stroke: currentColor; stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round; opacity: .82; }
+.nav-link:hover:not(.active) { background: #f5ecdf; color: #67472e; }
+.nav-link.active { background: #ead8c2; border-color: #dfc8ad; color: #68472e; font-weight: 700; box-shadow: inset -3px 0 0 #b8895b; }
+.nav-section-account { padding-top: 10px; border-top: 1px solid #eee3d6; }
+.sidebar-footer { padding: 12px; background: #fffaf3; border-top: 1px solid var(--line); }
+.sidebar-footer .btn-secondary { background: #f5ecdf; border-color: #e8d7c3; color: #79583a; }
+.app-main { min-width: 0; }
+.app-topbar { background: rgba(255,250,243,.96); border-bottom: 1px solid var(--line); }
+.page-body { width: 100%; max-width: none; padding: clamp(18px, 2.4vw, 34px); }
+.page-banner { background: linear-gradient(115deg, #c49a70 0%, #b8895b 52%, #a87950 100%); color: #fffaf3; border: 1px solid #b8895b; box-shadow: 0 10px 24px rgba(125, 83, 48, .10); }
+.page-banner h2 { color: #fffaf3; }
+.page-banner p { color: #fff3e5; }
+.auth-panel-banner { background: linear-gradient(125deg, #b8895b, #9b704b); color: #fffaf3; }
+.auth-panel-banner p { color: #fff4e8; }
+.btn-primary, .home-hero-cta { background: #9c714b; border-color: #9c714b; color: #fffaf3; }
+.btn-primary:hover, .home-hero-cta:hover { background: #805638; border-color: #805638; }
+.home-panel-heading { background: #9c714b; color: #fffaf3; }
+.home-stat-icon { background: #b8895b; color: #fffaf3; }
+.home-cap { background: #9c714b; }
+.home-quick-card { background: #f5ecdf; color: #68472e; }
+.home-quick-card:hover { background: #efe0cd; }
+.user-avatar-circle { background: #b8895b; color: #fffaf3; }
+.group-chip-btn.current { background: #9c714b; border-color: #9c714b; color: #fffaf3; }
+:focus-visible { outline-color: #b8895b !important; }
+@media (max-width: 768px) {
+  :root { --sidebar-w: 280px; }
+  .app-sidebar { background: #fffaf3; }
+  .sidebar-header { min-height: 78px; height: auto; flex-direction: row; text-align: right; }
+  .sidebar-nav { padding: 12px 11px 18px; }
+  .page-body { padding: 16px 13px 26px; }
+}
