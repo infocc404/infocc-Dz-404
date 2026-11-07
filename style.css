@@ -1574,3 +1574,107 @@ body { font-size:calc(1rem * var(--user-font-scale)); }
 :root[data-theme="dark"] .learning-item,
 :root[data-theme="dark"] .learning-answer,
 :root[data-theme="dark"] .quiz-option { background:#30271f; border-color:var(--line); color:var(--ink); }
+
+
+/* Refined QCM authoring and subject-based progress dashboard */
+.quiz-options-editor {
+  display:grid;
+  gap:12px;
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:var(--soft);
+}
+.quiz-options-editor-heading,
+.subject-progress-heading,
+.quiz-manage-main {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.quiz-options-editor-heading span,
+.quiz-option-editor-row .form-label span,
+.learning-hint {
+  color:var(--muted);
+  font-size:12px;
+}
+.quiz-option-editor-row {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:end;
+  gap:10px;
+  padding:10px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:var(--card);
+}
+.quiz-option-editor-row .form-label { margin:0; }
+.quiz-option-editor-row .btn-danger-soft { min-height:42px; }
+.quiz-options-editor button:disabled,
+.quiz-option-editor-row button:disabled { opacity:.45; cursor:not-allowed; }
+.quiz-manage-card {
+  display:block;
+  width:100%;
+}
+.quiz-manage-main { flex-wrap:wrap; }
+.quiz-manage-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.quiz-question-management {
+  margin-top:12px;
+  padding-top:10px;
+  border-top:1px solid var(--line);
+}
+.quiz-question-management summary {
+  cursor:pointer;
+  color:var(--brown-dark);
+  font-weight:700;
+  padding:6px 0;
+}
+.quiz-question-manage { margin-top:8px; }
+.progress-track {
+  width:100%;
+  height:10px;
+  overflow:hidden;
+  border-radius:999px;
+  background:var(--line);
+  margin:9px 0 7px;
+}
+.progress-track span {
+  display:block;
+  height:100%;
+  border-radius:inherit;
+  background:var(--brown);
+  transition:width .25s ease;
+}
+.semester-progress-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+  gap:12px;
+  margin-top:14px;
+}
+.semester-progress-card,
+.subject-progress-item {
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:var(--card);
+}
+.subject-progress-list { display:grid; gap:12px; margin-top:14px; }
+.subject-progress-heading strong { color:var(--ink); }
+.subject-progress-heading b { color:var(--brown-dark); font-size:20px; }
+.subject-progress-item small,
+.semester-progress-card small { color:var(--muted); font-size:12px; }
+.progress-summary .content-card small { color:var(--muted); font-size:11px; }
+@media (max-width:600px) {
+  .quiz-option-editor-row { grid-template-columns:minmax(0,1fr); }
+  .quiz-option-editor-row .btn-danger-soft { justify-self:start; }
+  .quiz-manage-main { align-items:flex-start; }
+  .quiz-manage-actions { width:100%; }
+}
+:root[data-theme="dark"] .quiz-options-editor,
+:root[data-theme="dark"] .quiz-option-editor-row,
+:root[data-theme="dark"] .semester-progress-card,
+:root[data-theme="dark"] .subject-progress-item {
+  background:#30271f;
+  border-color:var(--line);
+}
