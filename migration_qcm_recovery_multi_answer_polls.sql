@@ -334,3 +334,14 @@ end;
 $$;
 revoke all on function public.get_course_poll_results(uuid) from public,anon;
 grant execute on function public.get_course_poll_results(uuid) to authenticated;
+
+
+-- Supporting indexes and explicit no-direct-access policy for private votes.
+create index if not exists course_poll_votes_option_idx on public.course_poll_votes(option_id);
+create index if not exists course_poll_votes_user_idx on public.course_poll_votes(user_id);
+create index if not exists course_polls_created_by_idx on public.course_polls(created_by);
+create index if not exists quiz_correct_options_option_idx on public.quiz_correct_options(option_id);
+create index if not exists quizzes_deleted_by_idx on public.quizzes(deleted_by) where deleted_by is not null;
+create index if not exists quiz_questions_deleted_by_idx on public.quiz_questions(deleted_by) where deleted_by is not null;
+drop policy if exists course_poll_votes_no_direct_access on public.course_poll_votes;
+create policy course_poll_votes_no_direct_access on public.course_poll_votes for all to authenticated using (false) with check (false);
