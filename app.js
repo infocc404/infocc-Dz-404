@@ -1483,7 +1483,7 @@ function renderAccessDenied(page) {
 }
 
 // 11.5. Learning modules
-const learningSubjects = [["algo","Algorithms"],["arch","Computer Architecture"],["sys","Operating Systems"],["analyse","Analysis"],["algebre","Algebra"],["elec","Electronics"],["histoire","History of Computing"]];
+const learningSubjects = [["algo","Algorithms & Data Structures"],["arch","Computer Architecture"],["sys","Operating Systems"],["analyse","Mathematical Analysis"],["algebre","Algebra"],["elec","Fundamental Electronics"],["histoire","History of Computing"],["discrete_math","Discrete Mathematics"],["prob_stats","Probability & Statistics"],["logic","Logic & Digital Systems"],["programming","Programming"],["databases","Databases"],["networks","Computer Networks"],["web","Web Development"],["physics","Physics"],["english","English"],["french","French"],["other","Other / Custom Subject"]];
 function learningSubjectOptions(){return learningSubjects.map(x=>'<option value="'+x[0]+'">'+x[1]+'</option>').join("");}
 function learningMsg(el,msg,bad){if(el)el.innerHTML='<div class="'+(bad?'auth-error-box':'auth-success-box')+'" style="display:block">'+escapeHtml(msg)+'</div>';}
 async function renderLearningFeaturePage(page,kind){
@@ -1526,18 +1526,154 @@ async function renderLearningFeaturePage(page,kind){
  }
  if(kind==="quizzes"){
   const quizStaff=["owner","admin","uploader"].includes(state.role),isHead=state.role==="uploader",ownGroup=Number(state.uploaderGroup);
-  const {data:quizzes,error}=await supabase.from("quizzes").select("id,title,description,subject_id,group_no,duration_minutes").order("created_at",{ascending:false});
+  const {data:quizzes,error}=await supabase.from("quizzes").select("id,title,description,subject_id,group_no,duration_minutes,is_published").order("created_at",{ascending:false});
   if(error){body.textContent="تعذر تحميل الاختبارات: "+escapeHtml(error.message);return;}
-  const groupField=isHead?'<input type="hidden" name="group_no" value="'+ownGroup+'"><p class="learning-hint">سيُنشر الاختبار لفوجك G'+ownGroup+' فقط.</p>':'<select name="group_no" class="form-control"><option value="">كل الأفواج</option>'+[1,2,3,4,5,6,7,8,9,10].map(n=>'<option value="'+n+'">G'+n+'</option>').join("")+'</select>';
-  body.innerHTML=(quizStaff?'<section class="content-card"><h3>إنشاء اختبار QCM</h3><form id="newQuiz" class="learning-form"><input name="title" class="form-control" placeholder="عنوان الاختبار" required maxlength="180"><textarea name="description" class="form-control" placeholder="وصف الاختبار"></textarea><select name="subject_id" class="form-control">'+learningSubjectOptions()+'</select>'+groupField+'<input name="duration_minutes" class="form-control" type="number" min="1" max="240" placeholder="المدة بالدقائق"><button type="submit" class="btn-primary">إنشاء الاختبار</button></form></section>':'')+'<section class="content-card" style="margin-top:16px"><h3>الاختبارات المتاحة</h3><div class="learning-list">'+(quizzes||[]).map(q=>'<article class="learning-item"><div><strong>'+escapeHtml(q.title)+'</strong><p>'+escapeHtml(subj(q.subject_id))+' · '+(q.group_no?"G"+q.group_no:"كل الأفواج")+'</p></div><a class="btn-primary" href="#/quiz/'+q.id+'">فتح</a></article>').join("")+'</div></section>'+(quizStaff&&quizzes?.length?'<section class="content-card" style="margin-top:16px"><h3>إضافة سؤال QCM إلى اختبار</h3><form id="newQuestion" class="learning-form"><select name="quiz_id" class="form-control">'+quizzes.map(q=>'<option value="'+q.id+'">'+escapeHtml(q.title)+'</option>').join("")+'</select><textarea name="prompt" class="form-control" placeholder="نص السؤال" required></textarea><input name="a" class="form-control" placeholder="الخيار A" required><input name="b" class="form-control" placeholder="الخيار B" required><input name="c" class="form-control" placeholder="الخيار C" required><input name="d" class="form-control" placeholder="الخيار D" required><select name="correct" class="form-control"><option value="0">الإجابة الصحيحة: A</option><option value="1">الإجابة الصحيحة: B</option><option value="2">الإجابة الصحيحة: C</option><option value="3">الإجابة الصحيحة: D</option></select><button class="btn-primary">حفظ السؤال والتصحيح</button></form></section>':'');
-  const nf=body.querySelector("#newQuiz");if(nf)nf.onsubmit=async e=>{e.preventDefault();const fd=new FormData(nf),groupNo=isHead?ownGroup:(fd.get("group_no")?Number(fd.get("group_no")):null);if(isHead&&(!Number.isInteger(ownGroup)||ownGroup<1||ownGroup>10)){learningMsg(msg,"لم يتم تحديد فوج رئيس القسم بشكل صحيح.",true);return;}const {error:err}=await supabase.from("quizzes").insert({title:String(fd.get("title")).trim(),description:String(fd.get("description")||""),subject_id:fd.get("subject_id"),group_no:groupNo,duration_minutes:fd.get("duration_minutes")?Number(fd.get("duration_minutes")):null,is_published:true,created_by:uid});if(err){learningMsg(msg,"تعذر إنشاء الاختبار: "+err.message,true);return;}await renderLearningFeaturePage(page,kind);learningMsg(msg,"تم إنشاء الاختبار بنجاح. أضف الآن أسئلته وخياراته من قسم إضافة سؤال QCM.");};
-  const qf=body.querySelector("#newQuestion");if(qf)qf.onsubmit=async e=>{e.preventDefault();const fd=new FormData(qf),{count:questionCount,error:countError}=await supabase.from("quiz_questions").select("id",{count:"exact",head:true}).eq("quiz_id",fd.get("quiz_id"));if(countError){learningMsg(msg,countError.message,true);return;}const {data:q,error:qe}=await supabase.from("quiz_questions").insert({quiz_id:fd.get("quiz_id"),prompt:String(fd.get("prompt")).trim(),position:(questionCount||0)+1}).select("id").single();if(qe){learningMsg(msg,"تعذر حفظ السؤال: "+qe.message,true);return;}const opts=["a","b","c","d"].map(k=>String(fd.get(k)).trim()),{data:created,error:oe}=await supabase.from("quiz_options").insert(opts.map((option_text,i)=>({question_id:q.id,option_text,position:i+1}))).select("id,position");if(oe){learningMsg(msg,"تم إنشاء السؤال لكن تعذر حفظ الخيارات: "+oe.message,true);return;}const correct=created.find(x=>x.position===Number(fd.get("correct"))+1),{error:ke}=await supabase.from("quiz_answer_keys").insert({question_id:q.id,correct_option_id:correct.id});if(ke){learningMsg(msg,"تم حفظ الخيارات لكن تعذر حفظ مفتاح التصحيح: "+ke.message,true);return;}learningMsg(msg,"تم حفظ سؤال QCM وخياراته والإجابة الصحيحة. التصحيح الآلي يعمل عند إرسال الطالب للاختبار.");qf.reset();};return;
+  const quizIds=(quizzes||[]).map(q=>q.id);
+  let questions=[];
+  if(quizStaff&&quizIds.length){
+   const qr=await supabase.from("quiz_questions").select("id,quiz_id,prompt,position").in("quiz_id",quizIds).order("position",{ascending:true});
+   if(qr.error){body.textContent="تعذر تحميل أسئلة الاختبارات: "+escapeHtml(qr.error.message);return;}
+   questions=qr.data||[];
+  }
+  const groupField=isHead?'<input type="hidden" name="group_no" value="'+ownGroup+'"><p class="learning-hint">سيُنشر الاختبار لفوجك G'+ownGroup+' فقط.</p>':'<label class="form-label">الفوج المستهدف<select name="group_no" class="form-control"><option value="">كل الأفواج</option>'+[1,2,3,4,5,6,7,8,9,10].map(n=>'<option value="'+n+'">G'+n+'</option>').join("")+'</select></label>';
+  const subjectField='<label class="form-label">المادة<select name="subject_id" class="form-control">'+learningSubjectOptions()+'</select></label><input name="custom_subject" class="form-control" maxlength="80" placeholder="اكتب اسم المادة" style="display:none" aria-label="اسم المادة المخصص">';
+  const quizCards=(quizzes||[]).map(q=>{
+   const qs=questions.filter(x=>x.quiz_id===q.id);
+   const questionHtml=qs.length?qs.map(x=>'<div class="learning-item quiz-question-manage"><span><strong>'+escapeHtml(x.prompt)+'</strong><small>السؤال '+x.position+'</small></span><button type="button" class="btn-danger-soft" data-delete-question="'+x.id+'">حذف السؤال</button></div>').join(""):'<p class="learning-hint">لم تُضف أسئلة إلى هذا الاختبار بعد.</p>';
+   return '<article class="learning-item quiz-manage-card"><div class="quiz-manage-main"><div><strong>'+escapeHtml(q.title)+'</strong><p>'+escapeHtml(subj(q.subject_id))+' · '+(q.group_no?"G"+q.group_no:"كل الأفواج")+' · '+(q.is_published?"منشور":"مخفي")+' · '+qs.length+' سؤال</p></div><div class="quiz-manage-actions"><a class="btn-primary" href="#/quiz/'+q.id+'">فتح</a>'+(quizStaff?'<button type="button" class="btn-danger-soft" data-delete-quiz="'+q.id+'">حذف الاختبار</button>':'')+'</div></div>'+(quizStaff?'<details class="quiz-question-management"><summary>إدارة أسئلة هذا الاختبار</summary><div class="learning-list">'+questionHtml+'</div></details>':'')+'</article>';
+  }).join("");
+  body.innerHTML=(quizStaff?'<section class="content-card"><h3>إنشاء اختبار QCM</h3><p class="learning-hint">يمكنك نشر الاختبار لكل الأفواج أو تخصيصه لفوج محدد. اختر المادة والمدة ثم أنشئ الاختبار.</p><form id="newQuiz" class="learning-form"><label class="form-label">عنوان الاختبار<input name="title" class="form-control" placeholder="مثال: اختبار الفصل الأول في Algorithms" required maxlength="180"></label><label class="form-label">وصف الاختبار<textarea name="description" class="form-control" placeholder="تعليمات أو وصف مختصر للاختبار"></textarea></label>'+subjectField+groupField+'<label class="form-label">مدة الاختبار بالدقائق<input name="duration_minutes" class="form-control" type="number" min="1" max="240" placeholder="اختياري"></label><button type="submit" class="btn-primary">إنشاء الاختبار</button></form></section>':'')+
+  '<section class="content-card" style="margin-top:16px"><h3>الاختبارات المتاحة</h3><div class="learning-list">'+(quizCards||'<p class="empty-state">لا توجد اختبارات متاحة حاليًا.</p>')+'</div></section>'+
+  (quizStaff&&quizzes?.length?'<section class="content-card" style="margin-top:16px"><h3>إضافة سؤال QCM</h3><p class="learning-hint">ابدأ بثلاثة خيارات، ويمكنك إضافة خيار رابع أو خامس أو حذف الخيارات الزائدة. يجب اختيار إجابة صحيحة واحدة.</p><form id="newQuestion" class="learning-form"><label class="form-label">الاختبار<select name="quiz_id" class="form-control">'+quizzes.map(q=>'<option value="'+q.id+'">'+escapeHtml(q.title)+'</option>').join("")+'</select></label><label class="form-label">نص السؤال<textarea name="prompt" class="form-control" rows="3" placeholder="اكتب السؤال بوضوح" required maxlength="3000"></textarea></label><div class="quiz-options-editor"><div class="quiz-options-editor-heading"><strong>خيارات الإجابة</strong><span id="quizOptionCount">3 من 5</span></div><div id="quizOptionsEditor">'+[0,1,2].map(i=>'<div class="quiz-option-editor-row"><label class="form-label"><span>الخيار '+String.fromCharCode(65+i)+'</span><input class="form-control" name="option_text" maxlength="1000" required placeholder="اكتب نص الخيار '+String.fromCharCode(65+i)+'"></label><button type="button" class="btn-danger-soft" data-remove-option aria-label="حذف الخيار">حذف</button></div>').join("")+'</div><button type="button" id="addQuizOption" class="btn-secondary">+ إضافة خيار</button></div><label class="form-label">الإجابة الصحيحة<select name="correct_position" id="quizCorrectOption" class="form-control"><option value="0">A</option><option value="1">B</option><option value="2">C</option></select></label><button type="submit" class="btn-primary">حفظ السؤال والتصحيح</button></form></section>':'');
+  const qf=body.querySelector("#newQuestion");
+  if(qf){
+   const optionsWrap=qf.querySelector("#quizOptionsEditor"),addOption=qf.querySelector("#addQuizOption"),correctSelect=qf.querySelector("#quizCorrectOption"),optionCount=qf.querySelector("#quizOptionCount");
+   const syncOptionEditor=()=>{
+    const rows=[...optionsWrap.querySelectorAll(".quiz-option-editor-row")],previous=correctSelect.value;
+    rows.forEach((row,i)=>{row.querySelector("span").textContent="الخيار "+String.fromCharCode(65+i);row.querySelector("input").placeholder="اكتب نص الخيار "+String.fromCharCode(65+i);row.querySelector("[data-remove-option]").disabled=rows.length<=3;});
+    optionCount.textContent=rows.length+" من 5";
+    correctSelect.innerHTML=rows.map((row,i)=>'<option value="'+i+'">'+String.fromCharCode(65+i)+'</option>').join("");
+    correctSelect.value=Number(previous)<rows.length?previous:String(rows.length-1);
+    addOption.disabled=rows.length>=5;
+   };
+   addOption.onclick=()=>{
+    const rows=optionsWrap.querySelectorAll(".quiz-option-editor-row");
+    if(rows.length>=5)return;
+    const row=document.createElement("div");row.className="quiz-option-editor-row";
+    row.innerHTML='<label class="form-label"><span></span><input class="form-control" name="option_text" maxlength="1000" required></label><button type="button" class="btn-danger-soft" data-remove-option aria-label="حذف الخيار">حذف</button>';
+    optionsWrap.appendChild(row);syncOptionEditor();row.querySelector("input").focus();
+   };
+   optionsWrap.addEventListener("click",e=>{
+    const remove=e.target.closest("[data-remove-option]");
+    if(!remove)return;
+    if(optionsWrap.querySelectorAll(".quiz-option-editor-row").length<=3)return;
+    remove.closest(".quiz-option-editor-row").remove();syncOptionEditor();
+   });
+   syncOptionEditor();
+   qf.onsubmit=async e=>{
+    e.preventDefault();
+    const fd=new FormData(qf),opts=fd.getAll("option_text").map(x=>String(x).trim()),quizId=String(fd.get("quiz_id"));
+    if(opts.length<3||opts.length>5||opts.some(x=>!x)){learningMsg(msg,"يجب إدخال 3 إلى 5 خيارات، ولا تترك أي خيار فارغًا.",true);return;}
+    const submit=qf.querySelector('button[type="submit"]');submit.disabled=true;submit.textContent="جارٍ حفظ السؤال...";
+    const {data:lastQuestion,error:positionError}=await supabase.from("quiz_questions").select("position").eq("quiz_id",quizId).order("position",{ascending:false}).limit(1).maybeSingle();
+    if(positionError){submit.disabled=false;submit.textContent="حفظ السؤال والتصحيح";learningMsg(msg,"تعذر تحديد ترتيب السؤال: "+positionError.message,true);return;}
+    const {data:q,error:qe}=await supabase.from("quiz_questions").insert({quiz_id:quizId,prompt:String(fd.get("prompt")).trim(),position:(lastQuestion?.position||0)+1}).select("id").single();
+    if(qe){submit.disabled=false;submit.textContent="حفظ السؤال والتصحيح";learningMsg(msg,"تعذر حفظ السؤال: "+qe.message,true);return;}
+    const {data:created,error:oe}=await supabase.from("quiz_options").insert(opts.map((option_text,i)=>({question_id:q.id,option_text,position:i+1}))).select("id,position");
+    if(oe){await supabase.from("quiz_questions").delete().eq("id",q.id);submit.disabled=false;submit.textContent="حفظ السؤال والتصحيح";learningMsg(msg,"تعذر حفظ الخيارات: "+oe.message,true);return;}
+    const correct=created.find(x=>x.position===Number(fd.get("correct_position"))+1);
+    const {error:ke}=await supabase.from("quiz_answer_keys").insert({question_id:q.id,correct_option_id:correct?.id});
+    if(ke){await supabase.from("quiz_questions").delete().eq("id",q.id);submit.disabled=false;submit.textContent="حفظ السؤال والتصحيح";learningMsg(msg,"تعذر حفظ الإجابة الصحيحة: "+ke.message,true);return;}
+    await renderLearningFeaturePage(page,kind);
+    learningMsg(page.querySelector("#learnMsg"),"تم حفظ السؤال مع "+opts.length+" خيارات والإجابة الصحيحة. سيصل إشعار للطلاب المعنيين.",false);
+   };
+  }
+  const nf=body.querySelector("#newQuiz");
+  if(nf){
+   const subjectSelect=nf.querySelector('[name="subject_id"]'),customSubject=nf.querySelector('[name="custom_subject"]');
+   subjectSelect.onchange=()=>{customSubject.style.display=subjectSelect.value==="other"?"block":"none";customSubject.required=subjectSelect.value==="other";};
+   nf.onsubmit=async e=>{
+    e.preventDefault();
+    const fd=new FormData(nf),selectedSubject=String(fd.get("subject_id")),subjectId=selectedSubject==="other"?String(fd.get("custom_subject")||"").trim():selectedSubject;
+    const groupNo=isHead?ownGroup:(fd.get("group_no")?Number(fd.get("group_no")):null);
+    if(!subjectId){learningMsg(msg,"اختر المادة أو اكتب اسم مادة مخصصة.",true);return;}
+    if(isHead&&(!Number.isInteger(ownGroup)||ownGroup<1||ownGroup>10)){learningMsg(msg,"لم يتم تحديد فوج رئيس القسم بشكل صحيح.",true);return;}
+    const payload={title:String(fd.get("title")).trim(),description:String(fd.get("description")||""),subject_id:subjectId,group_no:groupNo,is_published:true,created_by:uid};
+    if(fd.get("duration_minutes"))payload.duration_minutes=Number(fd.get("duration_minutes"));
+    const submit=nf.querySelector('button[type="submit"]');submit.disabled=true;submit.textContent="جارٍ إنشاء الاختبار...";
+    const {data:created,error:err}=await supabase.from("quizzes").insert(payload).select("id").single();
+    if(err){submit.disabled=false;submit.textContent="إنشاء الاختبار";learningMsg(msg,"تعذر إنشاء الاختبار. الدور الحالي: "+state.role+". تفاصيل قاعدة البيانات: "+err.message,true);return;}
+    await renderLearningFeaturePage(page,kind);
+    learningMsg(page.querySelector("#learnMsg"),"تم إنشاء الاختبار بنجاح. أضف أسئلته الآن من قسم إضافة سؤال QCM. تم إرسال إشعار للطلاب المعنيين.",false);
+   };
+  }
+  body.querySelectorAll("[data-delete-question]").forEach(btn=>btn.onclick=async()=>{
+   if(!confirm("هل تريد حذف هذا السؤال؟ لا يمكن حذف سؤال استُخدم في نتائج الطلاب."))return;
+   btn.disabled=true;
+   const {count,error:checkError}=await supabase.from("quiz_attempt_answers").select("id",{count:"exact",head:true}).eq("question_id",btn.dataset.deleteQuestion);
+   if(checkError){btn.disabled=false;learningMsg(msg,"تعذر التحقق من محاولات الطلاب: "+checkError.message,true);return;}
+   if(count>0){btn.disabled=false;learningMsg(msg,"لا يمكن حذف هذا السؤال لأنه مرتبط بنتائج طلاب محفوظة. يمكنك إخفاء الاختبار بدلًا من ذلك.",true);return;}
+   const {error:delError}=await supabase.from("quiz_questions").delete().eq("id",btn.dataset.deleteQuestion);
+   if(delError){btn.disabled=false;learningMsg(msg,"تعذر حذف السؤال: "+delError.message,true);return;}
+   await renderLearningFeaturePage(page,kind);learningMsg(page.querySelector("#learnMsg"),"تم حذف السؤال.",false);
+  });
+  body.querySelectorAll("[data-delete-quiz]").forEach(btn=>btn.onclick=async()=>{
+   if(!confirm("هل تريد حذف هذا الاختبار؟ سيتم حذف أسئلته وخياراته ومفاتيح التصحيح. إذا كانت له نتائج طلاب فسيُخفى بدل حذف سجلاتهم."))return;
+   btn.disabled=true;
+   const {count,error:checkError}=await supabase.from("quiz_attempts").select("id",{count:"exact",head:true}).eq("quiz_id",btn.dataset.deleteQuiz);
+   if(checkError){btn.disabled=false;learningMsg(msg,"تعذر التحقق من نتائج الاختبار: "+checkError.message,true);return;}
+   if(count>0){
+    const {error:hideError}=await supabase.from("quizzes").update({is_published:false,updated_at:new Date().toISOString()}).eq("id",btn.dataset.deleteQuiz);
+    if(hideError){btn.disabled=false;learningMsg(msg,"لا يمكن حذف الاختبار مع وجود نتائج، وتعذر إخفاؤه: "+hideError.message,true);return;}
+    await renderLearningFeaturePage(page,kind);learningMsg(page.querySelector("#learnMsg"),"للاحتفاظ بنتائج الطلاب، تم إخفاء الاختبار بدل حذفه.",false);return;
+   }
+   const {error:delError}=await supabase.from("quizzes").delete().eq("id",btn.dataset.deleteQuiz);
+   if(delError){btn.disabled=false;learningMsg(msg,"تعذر حذف الاختبار: "+delError.message,true);return;}
+   await renderLearningFeaturePage(page,kind);learningMsg(page.querySelector("#learnMsg"),"تم حذف الاختبار وأسئلته.",false);
+  });
+  return;
  }
  if(kind==="progress"){
-  const [fr,pr,ar,mr]=await Promise.all([supabase.from("files").select("id,title,subject,kind").limit(300),supabase.from("student_file_progress").select("file_id,status"),supabase.from("quiz_attempts").select("id,score,max_score,submitted_at"),supabase.from("study_plan_items").select("id,is_completed")]);
-  if(fr.error||pr.error){body.textContent="تعذر تحميل التقدم.";return;}const done=new Set((pr.data||[]).filter(x=>x.status==="completed").map(x=>x.file_id)),files=fr.data||[],pct=files.length?Math.round(done.size/files.length*100):0,completed=(mr.data||[]).filter(x=>x.is_completed).length;
-  body.innerHTML='<div class="progress-summary"><div class="content-card"><strong>'+pct+'%</strong><span>ملفات مكتملة الدراسة</span></div><div class="content-card"><strong>'+completed+'</strong><span>مهام مكتملة</span></div><div class="content-card"><strong>'+(ar.data||[]).length+'</strong><span>اختبارات منجزة</span></div></div><section class="content-card"><h3>علّم الملفات التي أنهيت دراستها</h3><p>فتح الملف وحده لا يعني أنك أتقنت محتواه.</p><div class="learning-list">'+files.map(file=>'<label class="learning-item"><span><strong>'+escapeHtml(file.title)+'</strong><small>'+escapeHtml(subj(file.subject))+' · '+escapeHtml(file.kind)+'</small></span><input type="checkbox" data-progress-file="'+file.id+'" '+(done.has(file.id)?"checked":"")+'></label>').join("")+'</div></section>';
-  body.querySelectorAll("[data-progress-file]").forEach(cb=>cb.onchange=async()=>{const {error:err}=await supabase.from("student_file_progress").upsert({user_id:uid,file_id:Number(cb.dataset.progressFile),status:cb.checked?"completed":"studying",updated_at:new Date().toISOString()},{onConflict:"user_id,file_id"});if(err)learningMsg(msg,err.message,true);else await renderLearningFeaturePage(page,kind);});return;
+  const [fr,pr,ar,mr]=await Promise.all([
+   supabase.from("files").select("id,title,subject,kind,semester").limit(1000),
+   supabase.from("student_file_progress").select("file_id,status").eq("user_id",uid),
+   supabase.from("quiz_attempts").select("id,score,max_score,submitted_at").eq("student_id",uid),
+   supabase.from("study_plan_items").select("id,is_completed").eq("user_id",uid)
+  ]);
+  if(fr.error||pr.error||ar.error||mr.error){body.textContent="تعذر تحميل التقدم الدراسي: "+escapeHtml(fr.error?.message||pr.error?.message||ar.error?.message||mr.error?.message||"خطأ غير معروف");return;}
+  const files=(fr.data||[]).filter(f=>f.subject!=="__schedule_pdf__"),done=new Set((pr.data||[]).filter(x=>x.status==="completed").map(x=>String(x.file_id)));
+  const completedFiles=files.filter(f=>done.has(String(f.id))).length,yearPct=files.length?Math.round(completedFiles/files.length*100):0;
+  const subjectStats=new Map(),semesterStats=new Map();
+  files.forEach(file=>{
+   const sid=normalizeSubjectId(file.subject),semester=String(file.semester||"غير محدد").trim()||"غير محدد",isDone=done.has(String(file.id));
+   if(!subjectStats.has(sid))subjectStats.set(sid,{total:0,done:0,semesters:new Map()});
+   const s=subjectStats.get(sid);s.total++;if(isDone)s.done++;
+   if(!s.semesters.has(semester))s.semesters.set(semester,{total:0,done:0});
+   const ss=s.semesters.get(semester);ss.total++;if(isDone)ss.done++;
+   if(!semesterStats.has(semester))semesterStats.set(semester,{total:0,done:0});
+   const st=semesterStats.get(semester);st.total++;if(isDone)st.done++;
+  });
+  const pct=(n,total)=>total?Math.round(n/total*100):0;
+  const progressBar=(value)=>'<div class="progress-track"><span style="width:'+value+'%"></span></div>';
+  const subjectRows=[...subjectStats.entries()].sort((a,b)=>subj(a[0]).localeCompare(subj(b[0]))).map(([sid,s])=>{
+   const value=pct(s.done,s.total),semesterText=[...s.semesters.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([sem,x])=>sem+': '+pct(x.done,x.total)+'%').join(' · ');
+   return '<article class="subject-progress-item"><div class="subject-progress-heading"><strong>'+escapeHtml(subj(sid))+'</strong><b>'+value+'%</b></div>'+progressBar(value)+'<small>'+s.done+' من '+s.total+' ملف مكتمل · '+escapeHtml(semesterText)+'</small></article>';
+  }).join("");
+  const semesterCards=[...semesterStats.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([sem,s])=>{
+   const value=pct(s.done,s.total);
+   return '<div class="semester-progress-card"><div class="subject-progress-heading"><strong>'+escapeHtml(sem==="غير محدد"?"السداسي غير المحدد":sem)+'</strong><b>'+value+'%</b></div>'+progressBar(value)+'<small>'+s.done+' من '+s.total+' ملف مكتمل</small></div>';
+  }).join("");
+  const completedTasks=(mr.data||[]).filter(x=>x.is_completed).length,attemptCount=(ar.data||[]).length;
+  const avgQuiz=attemptCount?Math.round((ar.data||[]).reduce((sum,x)=>sum+(Number(x.max_score)>0?Number(x.score)/Number(x.max_score)*100:0),0)/attemptCount):null;
+  body.innerHTML='<div class="progress-summary"><div class="content-card"><strong>'+yearPct+'%</strong><span>التقدم العام خلال السنة الدراسية</span><small>'+completedFiles+' من '+files.length+' ملف مكتمل</small></div><div class="content-card"><strong>'+completedTasks+'</strong><span>مهام مراجعة مكتملة</span></div><div class="content-card"><strong>'+attemptCount+'</strong><span>اختبارات منجزة</span></div><div class="content-card"><strong>'+(avgQuiz===null?"—":avgQuiz+"%")+'</strong><span>متوسط نتائج QCM</span></div></div>'+
+  '<section class="content-card"><h3>التقدم حسب السداسي</h3><p class="learning-hint">تُحسب النسبة من الملفات المتاحة في كل سداسي والتي علّمتها كمكتملة.</p><div class="semester-progress-grid">'+(semesterCards||'<p class="empty-state">لا توجد ملفات مرتبطة بسداسي بعد.</p>')+'</div></section>'+
+  '<section class="content-card" style="margin-top:16px"><h3>التقدم في كل مادة</h3><p class="learning-hint">كل مادة لها نسبة مستقلة، ويظهر تحتها توزيع التقدم حسب السداسي.</p><div class="subject-progress-list">'+(subjectRows||'<p class="empty-state">لا توجد مواد أو ملفات متاحة لقياس التقدم.</p>')+'</div></section>'+
+  '<section class="content-card" style="margin-top:16px"><h3>ملفاتك الدراسية</h3><p>علّم الملف بعد الانتهاء من دراسته؛ مجرد فتحه لا يُحتسب إنجازًا.</p><div class="learning-list">'+files.map(file=>'<label class="learning-item"><span><strong>'+escapeHtml(file.title||"ملف")+'</strong><small>'+escapeHtml(subj(normalizeSubjectId(file.subject)))+' · '+escapeHtml(file.kind||"")+' · '+escapeHtml(file.semester||"سداسي غير محدد")+'</small></span><input type="checkbox" data-progress-file="'+file.id+'" '+(done.has(String(file.id))?"checked":"")+'></label>').join("")+'</div></section>';
+  body.querySelectorAll("[data-progress-file]").forEach(cb=>cb.onchange=async()=>{
+   const {error:err}=await supabase.from("student_file_progress").upsert({user_id:uid,file_id:Number(cb.dataset.progressFile),status:cb.checked?"completed":"studying",updated_at:new Date().toISOString()},{onConflict:"user_id,file_id"});
+   if(err)learningMsg(msg,err.message,true);else await renderLearningFeaturePage(page,kind);
+  });
+  return;
  }
  if(kind==="preferences"){
   const {data:p}=await supabase.from("user_preferences").select("*").eq("user_id",uid).maybeSingle();
