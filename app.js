@@ -268,7 +268,7 @@ supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" && state.renderedUserId === state.user.id) return;
 
       await fetchRoleAndGroup();
-      if (state.role === "student" && (!state.studentGroup || !state.studentDisplayName)) {
+      if (state.role === "student" && !state.studentGroup) {
         state.renderedUserId = state.user.id;
         renderStudentOnboarding();
         return;
