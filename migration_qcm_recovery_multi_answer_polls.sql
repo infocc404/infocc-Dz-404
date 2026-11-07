@@ -310,3 +310,27 @@ grant execute on function public.cast_course_poll_vote(uuid,uuid[]) to authentic
 grant execute on function public.get_course_poll_results(uuid) to authenticated;
 
 commit;
+
+
+-- Corrected poll-result authorization: uploaders may only inspect their assigned group.
+create or replace function public.get_course_poll_results(p_poll_id uuid)
+returns jsonb language plpgsql stable security definer
+set search_path=pg_catalog,public,auth,pg_temp
+as $$
+declare v_uid uuid:=auth.uid(); v_poll public.course_polls%rowtype; v_role text:=public.current_role(); v_result jsonb;
+begin
+  if v_uid is null then raise exception 'Authentication required'; end if;
+  select * into v_poll from public.course_polls p where p.id=p_poll_id
+    and (v_role in ('owner','admin')
+      or (v_role='uploader' and p.group_no=(select up.group_no from public.uploaders up where up.user_id=v_uid limit 1))
+      or (p.group_no is null or exists(select 1 from public.student_profiles sp where sp.user_id=v_uid and sp.group_no=p.group_no)));
+  if not found then raise exception 'Poll not found'; end if;
+  select jsonb_build_object('poll_id',p_poll_id,
+    'total_votes',(select count(distinct user_id) from public.course_poll_votes where poll_id=p_poll_id),
+    'my_votes',coalesce((select jsonb_agg(option_id) from public.course_poll_votes where poll_id=p_poll_id and user_id=v_uid),'[]'::jsonb),
+    'options',coalesce((select jsonb_agg(jsonb_build_object('id',o.id,'text',o.option_text,'votes',(select count(*) from public.course_poll_votes v where v.poll_id=p_poll_id and v.option_id=o.id)) order by o.position) from public.course_poll_options o where o.poll_id=p_poll_id),'[]'::jsonb)) into v_result;
+  return v_result;
+end;
+$$;
+revoke all on function public.get_course_poll_results(uuid) from public,anon;
+grant execute on function public.get_course_poll_results(uuid) to authenticated;
