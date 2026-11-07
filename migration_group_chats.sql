@@ -17,6 +17,7 @@ create table if not exists public.student_group_chat_messages (
 create index if not exists student_group_chat_scope_created_idx
   on public.student_group_chat_messages(chat_type, group_no, created_at desc);
 alter table public.student_group_chat_messages enable row level security;
+grant select, insert on public.student_group_chat_messages to authenticated;
 
 create or replace function public.can_access_student_group_chat(p_chat_type text, p_group_no smallint)
 returns boolean
