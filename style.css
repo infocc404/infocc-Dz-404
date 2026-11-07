@@ -1955,20 +1955,15 @@ body { background:#fbf7f1; color:#302319; }
 .home-hero-rule { width:76%;height:1px;background:linear-gradient(90deg,transparent,#a9825f);margin:13px 0; }
 .home-hero-cta { border-radius:8px;background:#795338;padding:10px 19px; }
 .home-hero-signature { display:none; }
-.home-graduation-art { width:40%;left:auto;right:2%;top:8%;bottom:5%;opacity:1; }
-.home-graduation-art::before { content:"";position:absolute;inset:8% 8% 2%;border-radius:48% 48% 18px 18px;background:radial-gradient(circle at 50% 35%,#fff9f1 0 30%,#ead7c2 72%,#dfc5aa 100%);border:1px solid rgba(121,83,56,.12); }
-.home-campus { display:none; }
-.home-book-stack { position:absolute;left:17%;bottom:10%;width:66%;height:30%; }
-.home-book-stack span { position:absolute;left:5%;width:90%;height:24px;border:1px solid rgba(83,54,34,.2);border-radius:5px;background:linear-gradient(90deg,#795338 0 12%,#ead8c4 12% 100%);box-shadow:0 5px 10px rgba(65,42,25,.11); }
-.home-book-stack span:nth-child(1){bottom:0;transform:rotate(-2deg)}
-.home-book-stack span:nth-child(2){bottom:23px;left:0;width:94%;background:linear-gradient(90deg,#a87950 0 12%,#f3e5d5 12% 100%);transform:rotate(1.5deg)}
-.home-book-stack span:nth-child(3){bottom:46px;left:7%;width:86%;background:linear-gradient(90deg,#63432d 0 12%,#f8eee3 12% 100%);transform:rotate(-1deg)}
-.home-cap { position:absolute;left:33%;bottom:53%;width:35%;height:17%;background:#795338;clip-path:polygon(50% 0,100% 45%,50% 90%,0 45%);filter:drop-shadow(0 5px 3px rgba(76,50,29,.2)); }
-.home-cap::after { content:"";position:absolute;left:48%;top:45%;width:3px;height:48px;background:#b88a58;transform:rotate(-5deg); }
-.home-cap i { position:absolute;left:48%;top:40%;width:9px;height:9px;border-radius:50%;background:#d9b47e; }
-.logo-badge-small { background:#795338; }
-.home-hero-art,.home-graduation-art { overflow:hidden; }
-@media(max-width:760px){.home-graduation-art{width:92%;height:43%;right:4%;left:auto;top:auto;bottom:0;opacity:.55}.home-cap{bottom:50%}.home-book-stack{bottom:7%}}
+.home-graduation-art { width:44%;left:auto;right:0;opacity:1; }
+.home-graduation-art::before { content:"";position:absolute;left:7%;bottom:0;width:90%;height:88%;background:linear-gradient(90deg,rgba(91,57,33,.1),rgba(255,250,244,.05)),linear-gradient(0deg,#b99878 0%,#e6d2bc 58%,#f5e9db 100%);clip-path:polygon(0 100%,0 30%,13% 30%,13% 18%,27% 18%,27% 28%,38% 28%,38% 7%,94% 7%,94% 100%);opacity:.58; }
+.home-campus { position:absolute;right:5%;bottom:0;width:36%;height:76%;background:repeating-linear-gradient(90deg,transparent 0 15px,rgba(100,66,42,.23) 15px 19px),linear-gradient(#d7c0a7,#b99b7e);clip-path:polygon(0 17%,50% 0,100% 17%,100% 100%,0 100%);opacity:.7; }
+.home-book-stack { position:absolute;left:10%;bottom:8%;width:47%;height:28%; }
+.home-book-stack span { position:absolute;left:0;width:100%;height:26px;border:1px solid rgba(83,54,34,.28);border-radius:4px;background:linear-gradient(90deg,#5d3b27,#b18a66 14%,#e8d6c2 15%,#f8eee2 100%);box-shadow:0 6px 10px rgba(65,42,25,.15); }
+.home-book-stack span:nth-child(1){bottom:0;transform:rotate(-2deg)} .home-book-stack span:nth-child(2){bottom:25px;left:5%;width:90%;background:linear-gradient(90deg,#8c6545,#c9a987 15%,#f4e5d4 16%)} .home-book-stack span:nth-child(3){bottom:50px;left:2%;width:94%;background:linear-gradient(90deg,#493020,#9a7656 15%,#eee0d0 16%)}
+.home-cap { position:absolute;left:22%;bottom:53%;width:34%;height:16%;background:#251d18;clip-path:polygon(50% 0,100% 45%,50% 90%,0 45%);filter:drop-shadow(0 5px 3px #4c321d55); }
+.home-cap::after { content:"";position:absolute;left:48%;top:45%;width:3px;height:65px;background:#c39a61;transform:rotate(-5deg); }
+.home-cap i { position:absolute;left:48%;top:40%;width:9px;height:9px;border-radius:50%;background:#d5ae72; }
 .home-stats { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:22px; }
 .home-stat { display:flex;align-items:center;gap:16px;min-height:112px;padding:18px 20px;background:#fffdfa;border:1px solid #eee3d9;border-radius:14px;box-shadow:0 4px 16px rgba(65,43,26,.045); }
 .home-stat-icon { width:62px;height:62px;flex:0 0 62px;display:grid;place-items:center;border-radius:50%;background:#63432d;color:#fffaf3; }
