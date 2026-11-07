@@ -3,14 +3,14 @@
    ============================================================================ */
 
 :root {
-  --bg: #F5EFE6;
-  --card: #FBF8F3;
-  --ink: #2A2118;
-  --muted: #7A6A5C;
-  --line: #E6DACB;
-  --brown: #8C6B4F;
-  --brown-dark: #6F523B;
-  --soft: #EADFCF;
+  --bg: #F8F1E7;
+  --card: #FFF9F0;
+  --ink: #76563D;
+  --muted: #92775F;
+  --line: #E9D9C5;
+  --brown: #B8895B;
+  --brown-dark: #8A6240;
+  --soft: #F0E2CF;
   --danger: #b91c1c;
   --success: #15803d;
   --radius: 13px;
@@ -811,7 +811,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .pdf-viewer-wrap {
   display: flex;
   flex-direction: column;
-  background-color: #3f3933;
+  background-color: #8A6240;
   border-radius: var(--radius);
   overflow: hidden;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
@@ -2085,4 +2085,24 @@ body { background:#fbf7f1; color:#302319; }
 }
 @media(max-width:420px) {
   .home-feature-list { grid-template-columns:1fr; }
+}
+
+
+/* Warm caramel and sand palette — remove charcoal/black visual surfaces */
+:root {
+  --bg: #F8F1E7;
+  --card: #FFF9F0;
+  --ink: #76563D;
+  --muted: #92775F;
+  --line: #E9D9C5;
+  --brown: #B8895B;
+  --brown-dark: #8A6240;
+  --soft: #F0E2CF;
+}
+.pdf-viewer-wrap {
+  background-color: #8A6240;
+  box-shadow: 0 4px 16px rgba(104, 72, 43, .18);
+}
+#pdfCanvas {
+  box-shadow: 0 4px 12px rgba(104, 72, 43, .24);
 }
