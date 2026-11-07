@@ -1947,7 +1947,7 @@ body { background:#fbf7f1; color:#302319; }
 .page-body { max-width:1500px;padding:22px 24px 30px; }
 .home-hero { min-height:285px;margin-bottom:22px;padding:34px 38px;border:1px solid #ead9c7;border-radius:16px;background:linear-gradient(105deg,#e8d4bd 0%,#f6eade 48%,#fffaf4 100%); }
 .home-hero::before { background:linear-gradient(90deg,rgba(255,250,244,.04),rgba(255,250,244,.5) 43%,rgba(255,250,244,.98) 68%); }
-.home-hero-copy { width:60%;margin-right:auto;text-align:right; }
+.home-hero-copy { width:60%;margin:0;text-align:right; }
 .home-hero h1 { font-family:Georgia,'Times New Roman',serif;font-size:clamp(42px,5vw,64px);font-weight:700;color:#482b18;line-height:1.12;margin:0 0 6px; }
 .home-hero h2 { color:#50321f;font-size:clamp(17px,2vw,23px);font-weight:600;margin-bottom:8px; }
 .home-hero h3 { color:#50321f;font-size:clamp(21px,2.4vw,29px);font-weight:700;margin:13px 0 5px; }
