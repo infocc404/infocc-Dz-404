@@ -1705,19 +1705,14 @@ async function renderQuizAttemptPage(page,quizId){
 function renderHomeView(page) {
   const sg = state.studentGroup;
   const userLabel = state.studentDisplayName || state.user.email?.split("@")[0] || "طالب";
-  const cards = [
-    { href: "#/search", icon: "file", title: "ملفاتي", desc: "وصول سريع إلى ملفاتك الدراسية", tint: "sand" },
-    { href: "#/exams", icon: "exam", title: "أرشيف الامتحانات", desc: "امتحانات سابقة حسب المادة والفصل والفوج", tint: "peach" },
-    { href: "#/quizzes", icon: "exam", title: "اختبارات QCM", desc: "اختبر فهمك واحصل على التصحيح", tint: "lavender" },
-    { href: "#/discussions", icon: "users", title: "الأسئلة والأجوبة", desc: "ناقش أسئلة المواد مع زملائك", tint: "green" },
-    { href: "#/notes", icon: "file", title: "ملاحظاتي الدراسية", desc: "ملخصاتك وملاحظاتك الخاصة", tint: "sand" },
-    { href: "#/study-plan", icon: "calendar", title: "مخطط المراجعة", desc: "نظم مهامك ومواعيد امتحاناتك", tint: "peach" },
-    { href: "#/progress", icon: "calendar", title: "تقدمي الدراسي", desc: "تابع إنجازاتك التعليمية", tint: "blue" },
-    { href: "#/teachers", icon: "users", title: "الأساتذة", desc: "قائمة الأساتذة ومعلوماتهم", tint: "green" },
-    { href: "#/horaire", icon: "calendar", title: "الجدول الزمني", desc: "مواعيد المحاضرات والحصص", tint: "peach" },
-    { href: "#/groupes", icon: "book", title: "المواد الدراسية", desc: "تصفح المواد حسب الفوج", tint: "blue" },
-    { href: "#/announcements", icon: "megaphone", title: "الإعلانات", desc: "آخر المستجدات والإعلانات المهمة", tint: "rose" },
-    { href: "#/notifications", icon: "bell", title: "الإشعارات", desc: "تنبيهاتك وتحديثات حسابك", tint: "lavender" }
+  const availableFiles = Array.isArray(state.filesCache) ? state.filesCache.length : 0;
+  const quickLinks = [
+    { href: "#/search", icon: "file", title: "ملفاتي", desc: "الدروس والملفات المتاحة لك" },
+    { href: "#/groupes", icon: "book", title: "المواد الدراسية", desc: "المواد والأفواج الدراسية" },
+    { href: "#/horaire", icon: "calendar", title: "جدولي الزمني", desc: "مواعيد المحاضرات والحصص" },
+    { href: "#/teachers", icon: "users", title: "الأساتذة", desc: "معلومات الأساتذة وطرق التواصل" },
+    { href: "#/exams", icon: "exam", title: "أرشيف الامتحانات", desc: "امتحانات سابقة للمراجعة" },
+    { href: "#/quizzes", icon: "check", title: "اختبارات QCM", desc: "اختبر معلوماتك وصحّح إجاباتك" }
   ];
   const icons = {
     file: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.75h8l4 4v12.5H6z"/><path d="M14 3.75v4h4M9 12h6M9 15.5h6"/></svg>',
@@ -1725,49 +1720,54 @@ function renderHomeView(page) {
     users: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19v-1.4A4.6 4.6 0 0 1 8.1 13h1.8a4.6 4.6 0 0 1 4.6 4.6V19zM16 5.5a3 3 0 0 1 0 5.8M17 13.5a4.3 4.3 0 0 1 3.5 4.2V19h-3"/></svg>',
     calendar: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M8 3.5v4M16 3.5v4M4 9.5h16M8 13h2M13 13h3M8 16.5h2"/></svg>',
     book: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A3 3 0 0 1 7 3h5v17H7a3 3 0 0 0-3 1zM20 5.5A3 3 0 0 0 17 3h-5v17h5a3 3 0 0 1 3 1z"/><path d="M7 7h2M15 7h2"/></svg>',
-    megaphone: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l9 4V6l-9 4zM8 14l2 6h3l-2-5M19 9a4 4 0 0 1 0 6"/></svg>',
-    bell: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>'
+    check: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3.5" width="16" height="17" rx="2"/><path d="m8 12 2.5 2.5L16.5 9"/></svg>'
   };
   page.innerHTML = `
     <section class="home-hero">
       <div class="home-hero-copy">
-        <span class="home-eyebrow">منصتك الجامعية في مكان واحد</span>
-        <h1>مرحباً بك في منصة <bdi>info cc 404</bdi></h1>
-        <h2>رحلتك الدراسية تبدأ من هنا</h2>
-        <p>مكتبتك الرقمية لطلبة الإعلام الآلي؛ مكان واحد يجمع ملفاتك الدراسية، والمواد، ومعلومات الأساتذة، والجدول الزمني والإعلانات المهمة، لتصل إلى ما تحتاجه بسهولة ووضوح.</p>
-        <div class="home-hero-meta"><span class="home-meta-dot"></span><span>${sg ? `أنت مسجّل ضمن الفوج G${sg}` : 'أهلاً بك — نتمنى لك فصلاً دراسياً موفقاً'}</span></div>
-        <a href="#/search" class="home-hero-cta">ابدأ التصفح <span aria-hidden="true">←</span></a>
+        <span class="home-eyebrow">منصتك الأكاديمية في مكان واحد</span>
+        <h1><bdi>info cc 404</bdi></h1>
+        <h2>منصتك الأكاديمية لتنظيم الوصول إلى ملفاتكم الدراسية</h2>
+        <div class="home-hero-rule"></div>
+        <h3>مرحباً بكم، ${escapeHtml(userLabel)}</h3>
+        <p>هنا تجد مواردك الدراسية، والمواد، ومعلومات الأساتذة، والإعلانات المهمة في مساحة واحدة واضحة ومنظمة.</p>
+        <div class="home-hero-meta"><span class="home-meta-dot"></span><span>${sg ? `حسابك مرتبط بالفوج G${sg}` : 'نتمنى لك فصلاً دراسياً مليئاً بالنجاح'}</span></div>
+        <a href="#/search" class="home-hero-cta">تصفح الملفات <span aria-hidden="true">←</span></a>
       </div>
-      <div class="home-hero-art" aria-hidden="true">
-        <div class="art-sun"></div><div class="art-leaf leaf-one"></div><div class="art-leaf leaf-two"></div>
-        <div class="art-books book-one"></div><div class="art-books book-two"></div><div class="art-books book-three"></div>
-        <div class="art-laptop"><div class="art-screen"><div class="art-screen-line"></div><div class="art-screen-line short"></div><div class="art-screen-card"></div></div><div class="art-base"></div></div>
-        <div class="art-cup"><span></span></div>
+      <div class="home-hero-art home-graduation-art" aria-hidden="true">
+        <div class="home-campus"></div>
+        <div class="home-book-stack"><span></span><span></span><span></span></div>
+        <div class="home-cap"><i></i></div>
       </div>
-      <div class="home-hero-signature">بالتوفيق في مسيرتكم الدراسية <span>♥</span></div>
     </section>
 
-    <section class="home-shortcuts" aria-label="روابط المنصة">
-      ${cards.map(c => `<a href="${c.href}" class="home-feature-card"><span class="home-feature-icon ${c.tint}">${icons[c.icon]}</span><strong>${c.title}</strong><span class="home-feature-desc">${c.desc}</span><span class="home-feature-arrow" aria-hidden="true">←</span></a>`).join('')}
+    <section class="home-stats" aria-label="ملخص المنصة">
+      <article class="home-stat"><span class="home-stat-icon">${icons.file}</span><div><strong>${availableFiles.toLocaleString("en-US")}</strong><span>ملف متاح</span></div></article>
+      <article class="home-stat"><span class="home-stat-icon">${icons.users}</span><div><strong>10</strong><span>أفواج دراسية</span></div></article>
+      <article class="home-stat"><span class="home-stat-icon">${icons.book}</span><div><strong>7</strong><span>مواد دراسية</span></div></article>
+      <article class="home-stat"><span class="home-stat-icon">${icons.calendar}</span><div><strong>${sg ? `G${sg}` : '—'}</strong><span>فوجك الدراسي</span></div></article>
     </section>
 
     ${!sg && state.role === 'student' ? `<section class="home-group-notice"><div><strong>لم يتم تعيين فوجك بعد</strong><p>حدّد فوجك من صفحة الحساب وأرسل طلباً للإدارة حتى تظهر لك الملفات الخاصة بفوجك.</p></div><a href="#/compte" class="btn-primary">إعداد حسابي</a></section>` : ''}
 
-    <section class="home-about">
-      <div class="home-about-art" aria-hidden="true"><div class="about-plant"></div><div class="about-book about-book-a"></div><div class="about-book about-book-b"></div><div class="about-cap"><span></span></div></div>
-      <div class="home-about-copy">
-        <span class="home-eyebrow">مصمّمة لاحتياجات الطلبة</span>
-        <h2>لماذا <bdi>info cc 404</bdi>؟</h2>
-        <p>منصة متكاملة موجّهة لطلبة قسم الإعلام الآلي، تساعدك على تنظيم مواردك الدراسية ومتابعة المستجدات دون تشتّت.</p>
-        <div class="home-benefits">
-          <span><i>✓</i> الوصول إلى ملفاتك التعليمية</span><span><i>✓</i> متابعة الإعلانات المهمة</span>
-          <span><i>✓</i> معرفة مواعيد الجدول الزمني</span><span><i>✓</i> العثور على معلومات الأساتذة</span>
-          <span><i>✓</i> تصفح المواد حسب الفوج</span><span><i>✓</i> إدارة حسابك بسهولة</span>
+    <section class="home-dashboard-grid">
+      <div class="home-dashboard-panel">
+        <div class="home-panel-heading"><h2>الوصول السريع</h2><span class="home-panel-mark">✦</span></div>
+        <div class="home-quick-grid">
+          ${quickLinks.map(c => `<a href="${c.href}" class="home-quick-card"><span class="home-quick-icon">${icons[c.icon]}</span><strong>${c.title}</strong><small>${c.desc}</small></a>`).join("")}
         </div>
-        <a href="#/groupes" class="home-about-link">استكشف المواد الدراسية <span aria-hidden="true">←</span></a>
+      </div>
+      <div class="home-dashboard-panel home-announcement-panel">
+        <div class="home-panel-heading"><h2>آخر الإعلانات</h2><span class="home-panel-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l9 4V6l-9 4zM8 14l2 6h3l-2-5M19 9a4 4 0 0 0 0 6"/></svg></span></div>
+        <div class="home-announcement-empty">
+          <span class="home-announcement-symbol"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l9 4V6l-9 4zM8 14l2 6h3l-2-5M19 9a4 4 0 0 0 0 6"/></svg></span>
+          <strong>تابع جديد الإعلانات والتنبيهات</strong>
+          <p>ستجد هنا صفحة الإعلانات الرسمية وكل المستجدات المتعلقة بدراستك.</p>
+          <a href="#/announcements">عرض جميع الإعلانات <span aria-hidden="true">←</span></a>
+        </div>
       </div>
     </section>
-    <footer class="home-footer"><span><bdi>info cc 404</bdi> © ${new Date().getFullYear()} — جميع الحقوق محفوظة</span><span>معاً نحو مستقبل أفضل <b>♥</b></span></footer>
+    <footer class="home-footer"><span><bdi>info cc 404</bdi> © ${new Date().getFullYear()} — جميع الحقوق محفوظة</span><span>بالعلم نبني مستقبلاً أفضل</span></footer>
   `;
 }
 
