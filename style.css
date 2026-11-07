@@ -2366,3 +2366,9 @@ body, .app-container { background-color: #e7ddcf; }
   .private-compose,.private-inbox-list { padding:14px; }
   .private-conversation-detail { margin:0 12px 14px; padding:12px; }
 }
+
+/* Performance: keep route changes and scrolling lightweight */
+#binaryRainCanvas { opacity: .42; }
+.nav-section > .nav-link { animation: none !important; }
+.nav-section-toggle { transition: background-color .12s ease, border-color .12s ease !important; }
+.app-topbar { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
