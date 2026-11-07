@@ -127,3 +127,90 @@ grant execute on function public.send_student_group_chat_message(text, smallint,
 
 commit;
 notify pgrst, 'reload schema';
+
+
+-- Follow-up authorization/display correction:
+-- Owners and admins are global roles, not members of a student group.
+create or replace function public.my_role()
+returns table(user_role text, uploader_group smallint, assigned_group smallint)
+language plpgsql stable security definer
+set search_path = pg_catalog, public, auth, pg_temp
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_role text;
+  v_uploader_group smallint;
+  v_assigned_group smallint;
+begin
+  if v_uid is null then
+    return query select 'anon'::text, null::smallint, null::smallint;
+    return;
+  end if;
+  v_role := public.current_role();
+  if v_role = 'suspended' then
+    return query select 'suspended'::text, null::smallint, null::smallint;
+    return;
+  end if;
+  if v_role = 'uploader' then
+    select up.group_no into v_uploader_group from public.uploaders up where up.user_id = v_uid;
+  elsif v_role = 'student' then
+    v_assigned_group := public.my_group_no();
+  end if;
+  return query select v_role, v_uploader_group, v_assigned_group;
+end;
+$$;
+
+drop function if exists public.get_student_group_chat_messages(text, integer);
+create function public.get_student_group_chat_messages(
+  p_chat_type text,
+  p_group_no integer default null
+)
+returns table (
+  id bigint,
+  sender_id uuid,
+  sender_name text,
+  sender_role text,
+  body text,
+  created_at timestamptz
+)
+language plpgsql stable security definer
+set search_path = pg_catalog, public, auth, pg_temp
+as $$
+begin
+  if not public.can_access_student_group_chat(p_chat_type, p_group_no) then
+    raise exception 'ليس لديك إذن لدخول هذه المحادثة';
+  end if;
+  return query
+    select
+      m.id,
+      m.sender_id,
+      coalesce(
+        nullif(btrim(sp.display_name), ''),
+        case
+          when m.sender_id = auth.uid() then 'أنت'
+          when lower(coalesce(u.email, '')) = 'locoviber16@gmail.com' then 'المالك'
+          when exists (select 1 from public.admins a where a.user_id = m.sender_id) then 'الإدارة'
+          when exists (select 1 from public.uploaders up where up.user_id = m.sender_id) then 'رئيس القسم'
+          else 'طالب'
+        end
+      )::text,
+      case
+        when lower(coalesce(u.email, '')) = 'locoviber16@gmail.com' then 'owner'
+        when exists (select 1 from public.admins a where a.user_id = m.sender_id) then 'admin'
+        when exists (select 1 from public.uploaders up where up.user_id = m.sender_id) then 'uploader'
+        else 'student'
+      end::text,
+      m.body,
+      m.created_at
+    from public.student_group_chat_messages m
+    left join public.student_profiles sp on sp.user_id = m.sender_id
+    left join auth.users u on u.id = m.sender_id
+    where m.chat_type = p_chat_type
+      and m.group_no is not distinct from p_group_no
+    order by m.created_at asc
+    limit 150;
+end;
+$$;
+revoke all on function public.get_student_group_chat_messages(text, integer) from public, anon;
+grant execute on function public.get_student_group_chat_messages(text, integer) to authenticated;
+notify pgrst, 'reload schema';
