@@ -19,7 +19,7 @@ create index if not exists student_group_chat_scope_created_idx
 alter table public.student_group_chat_messages enable row level security;
 grant select, insert on public.student_group_chat_messages to authenticated;
 
-create or replace function public.can_access_student_group_chat(p_chat_type text, p_group_no smallint)
+create or replace function public.can_access_student_group_chat(p_chat_type text, p_group_no integer)
 returns boolean
 language sql stable security definer
 set search_path = pg_catalog, public, auth, pg_temp
@@ -62,7 +62,7 @@ with check (
 
 create or replace function public.get_student_group_chat_messages(
   p_chat_type text,
-  p_group_no smallint default null
+  p_group_no integer default null
 )
 returns table (
   id bigint,
@@ -98,7 +98,7 @@ grant execute on function public.get_student_group_chat_messages(text, smallint)
 
 create or replace function public.send_student_group_chat_message(
   p_chat_type text,
-  p_group_no smallint,
+  p_group_no integer,
   p_body text
 )
 returns bigint
