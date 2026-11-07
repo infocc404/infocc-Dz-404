@@ -1741,6 +1741,22 @@ function renderHomeView(page) {
       </div>
     </section>
 
+    <section class="home-description content-card" aria-labelledby="homeDescriptionTitle">
+      <div class="home-description-heading">
+        <span class="home-description-kicker">مساحة دراسية متكاملة لطلبة الإعلام الآلي</span>
+        <h2 id="homeDescriptionTitle">كل ما تحتاجه لتنظيم دراستك في مكان واحد</h2>
+        <p>info cc 404 منصة أكاديمية تجمع الموارد التعليمية والخدمات المساندة لطلبة الإعلام الآلي. صُممت لتسهيل الوصول إلى الدروس والملفات حسب الفوج، ومتابعة المستجدات، وتنظيم المراجعة والتواصل الدراسي.</p>
+      </div>
+      <div class="home-feature-list">
+        <div><b>الموارد والملفات</b><span>دروس وملفات Cours وTD وTP قابلة للبحث والتنزيل، مع تنظيم الوصول حسب الفوج.</span></div>
+        <div><b>المواد والأفواج</b><span>تنظيم المواد الدراسية والأفواج العشرة G1 إلى G10.</span></div>
+        <div><b>الأساتذة</b><span>دليل الأساتذة ومعلوماتهم وملفاتهم حسب المادة ونوع الحصة.</span></div>
+        <div><b>الامتحانات وQCM</b><span>أرشيف الامتحانات السابقة واختبارات اختيار من متعدد مع تصحيح تلقائي.</span></div>
+        <div><b>التنظيم والمتابعة</b><span>الجدول الدراسي، خطة المراجعة، الملاحظات، ومتابعة تقدمك الدراسي.</span></div>
+        <div><b>التواصل والإعلانات</b><span>إعلانات وتنبيهات، مساحة للأسئلة والنقاش، ومراسلة الإدارة.</span></div>
+      </div>
+    </section>
+
     <section class="home-stats" aria-label="ملخص المنصة">
       <article class="home-stat"><span class="home-stat-icon">${icons.file}</span><div><strong>${availableFiles.toLocaleString("en-US")}</strong><span>ملف متاح</span></div></article>
       <article class="home-stat"><span class="home-stat-icon">${icons.users}</span><div><strong>10</strong><span>أفواج دراسية</span></div></article>
@@ -3136,6 +3152,11 @@ async function renderOwnerUsersView(page) {
       <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">طلبات الطلاب فقط. يمكنك مراجعة الطلب ثم حذف الحساب نهائيًا؛ حسابات المالك والمشرفين ورؤساء الأقسام محمية.</p>
       <div id="ownerDeletionRequests"><p style="color:var(--muted);">جارٍ تحميل الطلبات...</p></div>
     </div>
+    <div class="content-card" style="margin-top:18px;">
+      <h3 style="font-size:18px;color:var(--brown-dark);margin-bottom:6px;">طلبات أسماء الطلاب</h3>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">راجع الاسم الذي أرسله الطالب، ثم وافق عليه ليظهر في الموقع أو ارفض الطلب.</p>
+      <div id="ownerStudentNameRequests"><p style="color:var(--muted);">جارٍ تحميل طلبات الأسماء...</p></div>
+    </div>
   `;
 
   const groupFilter = page.querySelector("#ownerUserGroupFilter");
@@ -3271,6 +3292,47 @@ async function renderOwnerUsersView(page) {
     }
   }
 
+  async function loadStudentNameRequests() {
+    const host = page.querySelector("#ownerStudentNameRequests");
+    if (!host) return;
+    try {
+      const { data, error } = await supabase.from("student_name_requests")
+        .select("id,user_id,student_email,requested_name,created_at")
+        .eq("status","pending").order("created_at",{ascending:false});
+      if (error) throw error;
+      if (!data?.length) { host.innerHTML = `<p style="color:var(--muted);">لا توجد طلبات أسماء معلقة.</p>`; return; }
+      host.innerHTML = `<div style="display:grid;gap:10px;">${data.map(r => `
+        <article style="border:1px solid var(--line);border-radius:12px;padding:14px;">
+          <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+            <b>${escapeHtml(r.requested_name)}</b><small style="color:var(--muted);">${formatDate(r.created_at)}</small>
+          </div>
+          <div class="mono" dir="ltr" style="font-size:12px;color:var(--muted);margin-top:6px;">${escapeHtml(r.student_email || r.user_id)}</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+            <button type="button" class="btn-primary owner-name-request-review" data-id="${r.id}" data-approve="true">الموافقة على الاسم</button>
+            <button type="button" class="btn-danger owner-name-request-review" data-id="${r.id}" data-approve="false">رفض الطلب</button>
+          </div>
+        </article>`).join("")}</div>`;
+      host.querySelectorAll(".owner-name-request-review").forEach(btn => btn.onclick = async () => {
+        const approved = btn.dataset.approve === "true";
+        if (!confirm(approved ? "هل توافق على اعتماد هذا الاسم للطالب؟" : "هل تريد رفض طلب الاسم؟")) return;
+        host.querySelectorAll("button").forEach(b => b.disabled = true);
+        try {
+          const { error: reviewError } = await supabase.rpc("owner_review_student_name_request", {
+            p_request_id: Number(btn.dataset.id), p_approved: approved, p_note: null
+          });
+          if (reviewError) throw reviewError;
+          await loadStudentNameRequests();
+          alert(approved ? "تم اعتماد اسم الطالب." : "تم رفض طلب الاسم.");
+        } catch (err) {
+          alert("تعذرت مراجعة الطلب: " + (err.message || "خطأ غير معروف"));
+          host.querySelectorAll("button").forEach(b => b.disabled = false);
+        }
+      });
+    } catch (err) {
+      host.innerHTML = `<p style="color:var(--danger);">تعذر تحميل طلبات الأسماء: ${escapeHtml(err.message || "خطأ غير معروف")}.</p>`;
+    }
+  }
+
   async function loadUsers() {
     table.innerHTML = `<p style="padding:18px;color:var(--muted);">جارٍ تحميل قائمة المستخدمين...</p>`;
     try {
@@ -3290,6 +3352,7 @@ async function renderOwnerUsersView(page) {
   searchInput.oninput = renderRows;
   await loadUsers();
   await loadDeletionRequests();
+  await loadStudentNameRequests();
 }
 
 
@@ -4196,6 +4259,21 @@ function renderAccountView(page) {
         </div>
       </div>
 
+      ${state.role === "student" ? `
+        <hr style="border:0;border-top:1px solid var(--line);margin:24px 0;">
+        <section aria-labelledby="studentNameRequestTitle">
+          <h3 id="studentNameRequestTitle" style="font-size:17px;font-weight:700;color:var(--brown-dark);margin-bottom:8px;">الاسم الظاهر في الموقع</h3>
+          <p style="font-size:13px;color:var(--muted);line-height:1.8;margin-bottom:12px;">اكتب اسمك الحقيقي أو الاسم الذي تريد أن يظهر للطلاب. سيصل طلبك إلى مالك المنصة، ولن يتغير الاسم المعتمد إلا بعد موافقته.</p>
+          <div id="studentNameRequestFeedback" role="status" style="font-size:13px;margin-bottom:8px;"></div>
+          <form id="studentNameRequestForm" style="display:grid;gap:10px;">
+            <label class="form-label" for="requestedStudentName">الاسم المقترح</label>
+            <input id="requestedStudentName" class="form-control" type="text" minlength="2" maxlength="40" required value="${escapeHtml(state.studentDisplayName || "")}" placeholder="اكتب اسمك هنا">
+            <button type="submit" class="btn-primary" id="sendStudentNameRequestBtn" style="width:auto;justify-self:start;padding:10px 18px;">إرسال الاسم للموافقة</button>
+          </form>
+          <div id="myStudentNameRequests" style="margin-top:16px;"><p style="font-size:13px;color:var(--muted);">جارٍ تحميل طلباتك...</p></div>
+        </section>
+      ` : ""}
+
       ${isOwner ? `
         <div style="border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--cream,#fbf7f0);">
           <h3 style="font-size:18px;font-weight:700;color:var(--brown-dark);margin-bottom:8px;">مالك منصة info cc 404</h3>
@@ -4248,6 +4326,54 @@ function renderAccountView(page) {
       <button type="button" class="btn-danger" id="accountLogoutBtn" style="padding:10px 20px;font-size:14px;">تسجيل الخروج من الحساب</button>
     </div>
   `;
+
+  const nameRequestForm = document.getElementById("studentNameRequestForm");
+  if (nameRequestForm) {
+    const nameFeedback = document.getElementById("studentNameRequestFeedback");
+    const nameHistory = document.getElementById("myStudentNameRequests");
+    async function loadMyStudentNameRequests() {
+      try {
+        const { data, error } = await supabase.from("student_name_requests")
+          .select("id,requested_name,status,owner_note,created_at,reviewed_at")
+          .order("created_at",{ascending:false}).limit(10);
+        if (error) throw error;
+        const labels = {pending:"قيد مراجعة المالك",approved:"تمت الموافقة",rejected:"مرفوض"};
+        const colors = {pending:"#8a6d3b",approved:"#28734a",rejected:"#a33b32"};
+        nameHistory.innerHTML = !data?.length ? `<p style="font-size:13px;color:var(--muted);">لم ترسل طلبات أسماء بعد.</p>` : data.map(r => `
+          <div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:8px;">
+            <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+              <b>${escapeHtml(r.requested_name)}</b><strong style="font-size:12px;color:${colors[r.status] || "var(--muted)"};">${labels[r.status] || escapeHtml(r.status)}</strong>
+            </div>
+            <small style="color:var(--muted);">${formatDate(r.created_at)}</small>
+            ${r.owner_note ? `<p style="font-size:12px;margin:6px 0 0;">رد المالك: ${escapeHtml(r.owner_note)}</p>` : ""}
+          </div>`).join("");
+      } catch (err) { nameHistory.innerHTML = `<p style="font-size:13px;color:var(--danger);">تعذر تحميل الطلبات: ${escapeHtml(err.message || "خطأ غير معروف")}</p>`; }
+    }
+    nameRequestForm.onsubmit = async event => {
+      event.preventDefault();
+      const input = document.getElementById("requestedStudentName");
+      const name = input.value.trim().replace(/\s+/g," ");
+      const btn = document.getElementById("sendStudentNameRequestBtn");
+      nameFeedback.style.color = "var(--muted)";
+      nameFeedback.textContent = "";
+      if (name.length < 2 || name.length > 40) { nameFeedback.textContent = "الاسم يجب أن يكون بين حرفين و40 حرفًا."; return; }
+      btn.disabled = true; btn.textContent = "جارٍ إرسال الطلب...";
+      try {
+        const { error } = await supabase.from("student_name_requests").insert({
+          user_id: state.user.id, student_email: state.user.email || null, requested_name: name
+        });
+        if (error?.code === "23505") throw new Error("لديك طلب اسم قيد المراجعة بالفعل. انتظر قرار المالك.");
+        if (error) throw error;
+        nameFeedback.style.color = "var(--success,#28734a)";
+        nameFeedback.textContent = "تم إرسال اسمك إلى المالك. سيظهر الاسم الجديد بعد الموافقة عليه.";
+        await loadMyStudentNameRequests();
+      } catch (err) {
+        nameFeedback.style.color = "var(--danger,#a33b32)";
+        nameFeedback.textContent = err.message || "تعذر إرسال الطلب.";
+      } finally { btn.disabled = false; btn.textContent = "إرسال الاسم للموافقة"; }
+    };
+    loadMyStudentNameRequests();
+  }
 
   const requestForm = document.getElementById("groupChangeRequestForm");
   if (requestForm) {
