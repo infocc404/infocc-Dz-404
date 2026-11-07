@@ -223,3 +223,18 @@ grant execute on function public.get_student_group_chat_messages(text, integer) 
 revoke all on function public.send_student_group_chat_message(text, integer, text) from public, anon;
 grant execute on function public.send_student_group_chat_message(text, integer, text) to authenticated;
 notify pgrst, 'reload schema';
+
+
+-- Enable live delivery of new group-chat messages through Supabase Realtime.
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'student_group_chat_messages'
+  ) then
+    alter publication supabase_realtime add table public.student_group_chat_messages;
+  end if;
+end
+$$;
