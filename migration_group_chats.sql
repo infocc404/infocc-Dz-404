@@ -214,3 +214,12 @@ $$;
 revoke all on function public.get_student_group_chat_messages(text, integer) from public, anon;
 grant execute on function public.get_student_group_chat_messages(text, integer) to authenticated;
 notify pgrst, 'reload schema';
+
+-- Keep the chat access helper private; only signed-in users can call the
+-- read/send RPCs. The SECURITY DEFINER functions enforce group membership.
+revoke all on function public.can_access_student_group_chat(text, integer) from public, anon, authenticated;
+revoke all on function public.get_student_group_chat_messages(text, integer) from public, anon;
+grant execute on function public.get_student_group_chat_messages(text, integer) to authenticated;
+revoke all on function public.send_student_group_chat_message(text, integer, text) from public, anon;
+grant execute on function public.send_student_group_chat_message(text, integer, text) to authenticated;
+notify pgrst, 'reload schema';
