@@ -789,6 +789,9 @@ function renderPasswordRecoveryScreen() {
 
 // 9. LOGGED-IN APP SHELL & ROUTER
 function startBinaryRain() {
+  // Draw a very light, static binary texture. The previous continuously
+  // animated canvas repainted thousands of glyphs every frame and competed
+  // with page rendering on lower-powered devices.
   const host = document.getElementById("app");
   if (!host) return;
   let canvas = document.getElementById("binaryRainCanvas");
@@ -800,66 +803,33 @@ function startBinaryRain() {
   }
   const ctx = canvas.getContext("2d", { alpha: true });
   if (!ctx) return;
-  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  let width = 0, height = 0, columns = [], raf = 0, lastFrame = 0;
-  const fontSize = 15;
-  const resize = () => {
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.35);
-    width = window.innerWidth;
-    height = window.innerHeight;
-    canvas.width = Math.floor(width * dpr);
-    canvas.height = Math.floor(height * dpr);
+  const drawStatic = () => {
+    const dpr = Math.min(window.devicePixelRatio || 1, 1);
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    canvas.width = Math.max(1, Math.floor(width * dpr));
+    canvas.height = Math.max(1, Math.floor(height * dpr));
     canvas.style.width = width + "px";
     canvas.style.height = height + "px";
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const count = Math.ceil(width / 17);
-    columns = Array.from({length: count}, () => ({
-      y: Math.random() * height,
-      speed: 1.1 + Math.random() * 2.3,
-      length: 9 + Math.floor(Math.random() * 17)
-    }));
     ctx.clearRect(0, 0, width, height);
-  };
-  const draw = (time) => {
-    if (document.hidden) { raf = requestAnimationFrame(draw); return; }
-    if (time - lastFrame < 34) { raf = requestAnimationFrame(draw); return; }
-    lastFrame = time;
-    ctx.fillStyle = "rgba(231, 220, 205, 0.13)";
-    ctx.fillRect(0, 0, width, height);
-    ctx.font = fontSize + "px ui-monospace, SFMono-Regular, Consolas, monospace";
+    ctx.font = "12px ui-monospace, SFMono-Regular, Consolas, monospace";
     ctx.textAlign = "center";
-    for (let i = 0; i < columns.length; i++) {
-      const col = columns[i];
-      const x = i * 17 + 8;
-      for (let j = 0; j < col.length; j++) {
-        const y = col.y - j * fontSize;
-        if (y < -fontSize || y > height + fontSize) continue;
-        const bright = j === 0;
-        ctx.fillStyle = bright ? "rgba(232, 199, 157, .62)" : `rgba(126, 91, 59, ${Math.max(.045, .19 - j * .008)})`;
-        ctx.fillText(Math.random() > .5 ? "1" : "0", x, y);
-      }
-      col.y += col.speed;
-      if (col.y - col.length * fontSize > height && Math.random() > .975) {
-        col.y = -Math.random() * height * .35;
-        col.speed = 1.1 + Math.random() * 2.3;
+    ctx.fillStyle = "rgba(126, 91, 59, .075)";
+    for (let x = 18; x < width; x += 48) {
+      for (let y = 24; y < height; y += 52) {
+        ctx.fillText(((Math.floor(x / 48) + Math.floor(y / 52)) % 2) ? "1" : "0", x, y);
       }
     }
-    raf = requestAnimationFrame(draw);
   };
   if (state._binaryRainResize) window.removeEventListener("resize", state._binaryRainResize);
-  state._binaryRainResize = resize;
-  window.addEventListener("resize", resize, { passive: true });
-  resize();
-  if (reduceMotion) {
-    ctx.font = fontSize + "px ui-monospace, SFMono-Regular, Consolas, monospace";
-    ctx.fillStyle = "rgba(126, 91, 59, .12)";
-    for (let x = 8; x < width; x += 17) {
-      for (let y = 18; y < height; y += 23) ctx.fillText(Math.random() > .5 ? "1" : "0", x, y);
-    }
-    return;
+  state._binaryRainResize = drawStatic;
+  window.addEventListener("resize", drawStatic, { passive: true });
+  drawStatic();
+  if (state._binaryRainFrame) {
+    cancelAnimationFrame(state._binaryRainFrame);
+    state._binaryRainFrame = null;
   }
-  if (state._binaryRainFrame) cancelAnimationFrame(state._binaryRainFrame);
-  state._binaryRainFrame = requestAnimationFrame(draw);
 }
 function renderApp() {
   if (recoveryMode) {
