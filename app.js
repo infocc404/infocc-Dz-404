@@ -1628,7 +1628,13 @@ async function renderLearningFeaturePage(page,kind){
     await renderLearningFeaturePage(page,kind);learningMsg(page.querySelector("#learnMsg"),"للاحتفاظ بنتائج الطلاب، تم إخفاء الاختبار بدل حذفه.",false);return;
    }
    const {error:delError}=await supabase.from("quizzes").delete().eq("id",btn.dataset.deleteQuiz);
-   if(delError){btn.disabled=false;learningMsg(msg,"تعذر حذف الاختبار: "+delError.message,true);return;}
+   if(delError){
+    if(delError.code==="23503"||String(delError.message||"").includes("quiz_attempts_quiz_id_fkey")){
+     const {error:hideError}=await supabase.from("quizzes").update({is_published:false,updated_at:new Date().toISOString()}).eq("id",btn.dataset.deleteQuiz);
+     if(!hideError){await renderLearningFeaturePage(page,kind);learningMsg(page.querySelector("#learnMsg"),"لأن الاختبار مرتبط بمحاولات طلاب، تم إخفاؤه للحفاظ على النتائج بدل حذفها.",false);return;}
+    }
+    btn.disabled=false;learningMsg(msg,"تعذر حذف الاختبار: "+delError.message,true);return;
+   }
    await renderLearningFeaturePage(page,kind);learningMsg(page.querySelector("#learnMsg"),"تم حذف الاختبار وأسئلته.",false);
   });
   return;
