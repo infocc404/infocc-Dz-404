@@ -185,11 +185,11 @@ async function fetchRoleAndGroup() {
     if (Array.isArray(data) && data.length > 0) {
       state.role = data[0]?.user_role || "student";
       state.uploaderGroup = data[0]?.uploader_group ?? null;
-      state.studentGroup = data[0]?.assigned_group ?? null;
+      state.studentGroup = state.role === "student" ? (data[0]?.assigned_group ?? null) : null;
     } else if (typeof data === "object" && data !== null) {
       state.role = data.user_role || "student";
       state.uploaderGroup = data.uploader_group ?? null;
-      state.studentGroup = data.assigned_group ?? null;
+      state.studentGroup = state.role === "student" ? (data.assigned_group ?? null) : null;
     } else if (typeof data === "string") {
       state.role = data;
       state.uploaderGroup = null;
@@ -1876,7 +1876,10 @@ function formatDate(dateStr) {
 
 // 13. PAGE: GROUPES (#/groupes)
 function renderGroupesView(page) {
-  const sg = state.studentGroup;
+  // Only students and group heads have a home group. Owners/admins oversee all groups.
+  const sg = state.role === "owner" || state.role === "admin"
+    ? null
+    : (state.role === "uploader" ? state.uploaderGroup : state.studentGroup);
   page.innerHTML = `
     <div class="page-banner">
       <h2>الأفواج الدراسية (<span class="mono">G1 - G10</span>)</h2>
@@ -3477,8 +3480,11 @@ async function renderStudentMessagesView(page) {
     chatMessages.innerHTML = messages.map(m => {
       const mine = m.sender_id === state.user.id;
       const sender = mine ? (state.studentDisplayName || "أنت") : (m.sender_name || "عضو");
+      const roleLabels = { owner: "المالك", admin: "الإدارة", uploader: "رئيس القسم", student: "طالب" };
+      const senderRole = roleLabels[m.sender_role] || "";
       return '<article class="group-chat-message ' + (mine ? "mine" : "") + '"><div class="group-chat-message-meta"><strong>' +
-        escapeHtml(sender) + '</strong><time>' + formatDate(m.created_at) + '</time></div><p>' + escapeHtml(m.body) + '</p></article>';
+        escapeHtml(sender) + '</strong>' + (senderRole ? '<span class="chat-sender-role">' + escapeHtml(senderRole) + '</span>' : '') +
+        '<time>' + formatDate(m.created_at) + '</time></div><p>' + escapeHtml(m.body) + '</p></article>';
     }).join("");
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
