@@ -3455,146 +3455,203 @@ async function renderOwnerUsersView(page) {
 async function renderStudentMessagesView(page) {
   const isStaff = ["owner", "admin", "uploader"].includes(state.role);
   const canChooseAnyGroup = ["owner", "admin"].includes(state.role);
-  page.innerHTML = `
-    <div class="page-banner"><h2>المراسلة مع الطلاب</h2><p>${isStaff ? "تواصل خاص مع الطلاب. رئيس القسم يستطيع مراسلة طلاب فوجه فقط." : "اقرأ رسائل الإدارة أو المشرف المسؤول عن فوجك وأرسل ردك."}</p></div>
-    ${isStaff ? `<div class="content-card" style="margin-bottom:16px;">
-      <h3 style="font-size:16px;margin-bottom:6px;color:var(--brown-dark);">إرسال رسالة إلى طالب أو فوج كامل</h3><p style="font-size:12px;color:var(--muted);margin-bottom:8px;">اختر طالبًا واحدًا أو «الفوج كاملًا» لإرسال رسالة خاصة لكل طالب في الفوج.</p>
-      <form id="newStudentConversation" style="display:grid;gap:10px;">
-        <label class="form-label" for="messageGroup">أولًا: اختر الفوج</label>
-        <select id="messageGroup" class="form-control" required><option value="">اختر الفوج...</option></select>
-        <label class="form-label" for="messageStudent">ثانيًا: اختر الطالب</label>
-        <select id="messageStudent" class="form-control" required disabled><option value="">اختر الفوج أولًا</option></select>
-        <label class="form-label">موضوع الرسالة</label><input id="messageSubject" class="form-control" maxlength="160" required placeholder="موضوع مختصر">
-        <label class="form-label">نص الرسالة</label><textarea id="messageFirstBody" class="form-control" rows="3" maxlength="5000" required placeholder="اكتب رسالتك..."></textarea>
-        <button class="btn-primary" type="submit" style="width:auto;justify-self:start;">إرسال الرسالة</button>
-      </form><div id="newMessageFeedback" role="status" style="font-size:13px;margin-top:8px;"></div>
-    </div>` : ""}
-    <div class="content-card"><h3 style="font-size:17px;margin-bottom:12px;color:var(--brown-dark);">المحادثات</h3><div id="studentConversationList">جارٍ تحميل المحادثات...</div></div>
-    <div id="studentConversationDetail" class="content-card" style="margin-top:16px;display:none;"></div>
-  `;
+  const availableGroups = canChooseAnyGroup ? [1,2,3,4,5,6,7,8,9,10] :
+    [Number(isStaff ? state.uploaderGroup : state.studentGroup)].filter(g => Number.isInteger(g) && g >= 1 && g <= 10);
+
+  page.innerHTML = '<div class="page-banner"><h2>الشات الجامعي</h2><p>تواصل في الشات العام أو شات فوجك، مع مساحة منفصلة للمراسلات الخاصة.</p></div>' +
+    '<section class="content-card group-chat-shell"><div class="group-chat-heading"><div><h3>المحادثات الجماعية</h3><p class="learning-hint">اختر الشات العام أو افتح شات فوج محدد.</p></div><button type="button" class="btn-secondary" id="refreshGroupChat">تحديث</button></div>' +
+    '<div class="group-chat-tabs" id="groupChatTabs"><button type="button" class="group-chat-tab active" data-chat-type="general">الشات العام</button>' +
+    availableGroups.map(g => '<button type="button" class="group-chat-tab" data-chat-type="group" data-group="' + g + '">G' + g + '</button>').join("") +
+    '</div><div class="group-chat-room-title" id="groupChatRoomTitle">الشات العام</div><div class="group-chat-messages" id="groupChatMessages"><p class="empty-state">جارٍ تحميل المحادثة...</p></div>' +
+    '<form id="groupChatComposer" class="group-chat-composer"><textarea id="groupChatBody" class="form-control" rows="2" maxlength="3000" required placeholder="اكتب رسالة للجميع..."></textarea><button type="submit" class="btn-primary">إرسال</button></form><div id="groupChatFeedback" class="learning-hint"></div></section>' +
+    '<details class="content-card private-inbox-panel" id="privateInboxPanel"><summary><span>المراسلات الخاصة</span><small>محادثات فردية بين الإدارة والطلاب</small></summary>' +
+    (isStaff ? '<div class="private-compose"><h3>بدء مراسلة خاصة</h3><p class="learning-hint">يمكنك مراسلة طالب أو إرسال رسالة للفوج كاملًا؛ الرسائل الجماعية ستُجمع في مجموعة واحدة هنا.</p>' +
+    '<form id="newStudentConversation" class="learning-form"><label class="form-label">الفوج</label><select id="messageGroup" class="form-control" required><option value="">اختر الفوج...</option></select>' +
+    '<label class="form-label">الطالب</label><select id="messageStudent" class="form-control" required disabled><option value="">اختر الفوج أولًا</option></select>' +
+    '<label class="form-label">موضوع الرسالة</label><input id="messageSubject" class="form-control" maxlength="160" required placeholder="موضوع مختصر">' +
+    '<label class="form-label">نص الرسالة</label><textarea id="messageFirstBody" class="form-control" rows="3" maxlength="5000" required placeholder="اكتب رسالتك الخاصة..."></textarea><button class="btn-primary" type="submit">إرسال الرسالة الخاصة</button></form><div id="newMessageFeedback" class="learning-hint"></div></div>' : '') +
+    '<div class="private-inbox-list"><h3>صندوق الرسائل الخاصة</h3><div id="studentConversationList">جارٍ تحميل المحادثات...</div></div><div id="studentConversationDetail" class="private-conversation-detail" style="display:none"></div></details>';
+
+  const tabs = page.querySelector("#groupChatTabs");
+  const chatMessages = page.querySelector("#groupChatMessages");
+  const chatTitle = page.querySelector("#groupChatRoomTitle");
+  const chatFeedback = page.querySelector("#groupChatFeedback");
+  const composer = page.querySelector("#groupChatComposer");
+  const chatInput = page.querySelector("#groupChatBody");
   const list = page.querySelector("#studentConversationList");
   const detail = page.querySelector("#studentConversationDetail");
+  let activeChat = { type: "general", group: null };
   let conversations = [];
-  let selected = null;
+  let allowedStudents = [];
+
+  async function loadGroupChat() {
+    chatTitle.textContent = activeChat.type === "general" ? "الشات العام · جميع الأفواج" : "شات الفوج G" + activeChat.group;
+    chatMessages.innerHTML = '<p class="empty-state">جارٍ تحميل الرسائل...</p>';
+    const result = await supabase.rpc("get_student_group_chat_messages", {
+      p_chat_type: activeChat.type, p_group_no: activeChat.group
+    });
+    if (result.error) {
+      chatMessages.innerHTML = '<p class="empty-state">تعذر تحميل الشات: ' + escapeHtml(result.error.message) + '<br>طبّق migration_group_chats.sql في Supabase أولًا.</p>';
+      return;
+    }
+    const messages = result.data || [];
+    if (!messages.length) {
+      chatMessages.innerHTML = '<div class="group-chat-empty"><strong>بداية محادثة جديدة</strong><p>لا توجد رسائل بعد. كن أول من يشارك.</p></div>';
+      return;
+    }
+    chatMessages.innerHTML = messages.map(m => {
+      const mine = m.sender_id === state.user.id;
+      const sender = mine ? (state.studentDisplayName || "أنت") : (m.sender_name || "عضو");
+      return '<article class="group-chat-message ' + (mine ? "mine" : "") + '"><div class="group-chat-message-meta"><strong>' +
+        escapeHtml(sender) + '</strong><time>' + formatDate(m.created_at) + '</time></div><p>' + escapeHtml(m.body) + '</p></article>';
+    }).join("");
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  tabs.querySelectorAll(".group-chat-tab").forEach(btn => btn.onclick = async () => {
+    tabs.querySelectorAll(".group-chat-tab").forEach(x => x.classList.toggle("active", x === btn));
+    activeChat = btn.dataset.chatType === "general" ? { type: "general", group: null } :
+      { type: "group", group: Number(btn.dataset.group) };
+    chatInput.placeholder = activeChat.type === "general" ? "اكتب رسالة للجميع..." : "اكتب رسالة لطلاب G" + activeChat.group + "...";
+    chatFeedback.textContent = "";
+    await loadGroupChat();
+  });
+  composer.onsubmit = async e => {
+    e.preventDefault();
+    const body = chatInput.value.trim();
+    if (!body) return;
+    const btn = composer.querySelector("button");
+    btn.disabled = true;
+    const result = await supabase.rpc("send_student_group_chat_message", {
+      p_chat_type: activeChat.type, p_group_no: activeChat.group, p_body: body
+    });
+    btn.disabled = false;
+    if (result.error) { chatFeedback.textContent = result.error.message; return; }
+    chatInput.value = "";
+    await loadGroupChat();
+  };
+  page.querySelector("#refreshGroupChat").onclick = loadGroupChat;
 
   if (isStaff) {
-    const { data: students, error: studentsError } = await supabase.rpc("list_students_for_messaging");
+    const directory = await supabase.rpc("list_students_for_messaging");
     const groupSelect = page.querySelector("#messageGroup");
     const studentSelect = page.querySelector("#messageStudent");
-    let allowed = [];
-    if (studentsError) {
-      groupSelect.innerHTML = `<option value="">تعذر تحميل قائمة الطلاب: ${escapeHtml(studentsError.message)}</option>`;
+    if (directory.error) {
+      groupSelect.innerHTML = '<option value="">تعذر تحميل الطلاب: ' + escapeHtml(directory.error.message) + '</option>';
     } else {
-      allowed = students || [];
-      const groups = canChooseAnyGroup ? [1,2,3,4,5,6,7,8,9,10] : [Number(state.uploaderGroup)].filter(g => Number.isInteger(g) && g >= 1 && g <= 10);
-      groupSelect.innerHTML = `<option value="">اختر الفوج...</option>` + groups.map(g => {
-        const count = allowed.filter(s => Number(s.group_no) === g).length;
-        return `<option value="${g}">G${g}${count ? ` — ${count} طالب` : " — لا يوجد طلاب مسجلون في هذا الفوج"}</option>`;
+      allowedStudents = directory.data || [];
+      groupSelect.innerHTML = '<option value="">اختر الفوج...</option>' + availableGroups.map(g => {
+        const count = allowedStudents.filter(x => Number(x.group_no) === g).length;
+        return '<option value="' + g + '">G' + g + ' — ' + count + ' طالب</option>';
       }).join("");
-      if (!canChooseAnyGroup && groups.length === 1) {
-        groupSelect.value = String(groups[0]);
-        groupSelect.disabled = true;
+      if (!canChooseAnyGroup && availableGroups.length === 1) {
+        groupSelect.value = String(availableGroups[0]); groupSelect.disabled = true;
       }
     }
     groupSelect.onchange = () => {
       const g = Number(groupSelect.value);
-      const inGroup = allowed.filter(s => Number(s.group_no) === g);
+      const inGroup = allowedStudents.filter(x => Number(x.group_no) === g);
       studentSelect.disabled = !groupSelect.value;
-      studentSelect.innerHTML = !groupSelect.value
-        ? `<option value="">اختر الفوج أولًا</option>`
-        : `<option value="">اختر الطالب...</option><option value="__all__">الفوج كاملًا — إرسال إلى جميع الطلاب (${inGroup.length})</option>` + inGroup.map(s => {
-          const display = s.display_name || "طالب بدون اسم";
-          const email = s.email || "لا يوجد بريد إلكتروني";
-          return `<option value="${escapeHtml(s.user_id)}">${escapeHtml(display)} — ${escapeHtml(email)}</option>`;
-        }).join("");
-      if (groupSelect.value && !inGroup.length) {
-        studentSelect.innerHTML = `<option value="">لا يوجد طلاب مسجلون في هذا الفوج بعد</option>`;
-      }
+      studentSelect.innerHTML = !groupSelect.value ? '<option value="">اختر الفوج أولًا</option>' :
+        '<option value="">اختر طالبًا...</option><option value="__all__">الفوج كاملًا — ' + inGroup.length + ' طالب</option>' +
+        inGroup.map(x => '<option value="' + escapeHtml(x.user_id) + '">' + escapeHtml(x.display_name || "طالب بدون اسم") + '</option>').join("");
+      if (groupSelect.value && !inGroup.length) studentSelect.innerHTML = '<option value="">لا يوجد طلاب في هذا الفوج</option>';
     };
-    if (!studentsError && groupSelect.value) groupSelect.dispatchEvent(new Event("change"));
+    if (groupSelect.value) groupSelect.dispatchEvent(new Event("change"));
     page.querySelector("#newStudentConversation").onsubmit = async e => {
       e.preventDefault();
       const feedback = page.querySelector("#newMessageFeedback");
-      const studentId = studentSelect.value;
-      const groupNo = Number(groupSelect.value);
+      const studentId = studentSelect.value, groupNo = Number(groupSelect.value);
       const subject = page.querySelector("#messageSubject").value.trim();
       const body = page.querySelector("#messageFirstBody").value.trim();
       try {
         if (!Number.isInteger(groupNo) || groupNo < 1 || groupNo > 10) throw new Error("اختر الفوج أولًا.");
-        const isBroadcast = studentId === "__all__";
-        if (!studentId) throw new Error("اختر طالبًا أو اختر «الفوج كاملًا».");
-        if (!isBroadcast && !allowed.some(s => s.user_id === studentId && Number(s.group_no) === groupNo)) throw new Error("اختر طالبًا من الفوج المحدد.");
-        if (!subject || !body) throw new Error("أدخل موضوع الرسالة ونصها.");
-        const { data: result, error: sendError } = await supabase.rpc("send_staff_student_message", {
-          p_group_no: groupNo,
-          p_student_id: isBroadcast ? null : studentId,
-          p_subject: subject,
-          p_body: body
+        const broadcast = studentId === "__all__";
+        if (!studentId) throw new Error("اختر طالبًا أو الفوج كاملًا.");
+        if (!broadcast && !allowedStudents.some(x => x.user_id === studentId && Number(x.group_no) === groupNo)) throw new Error("الطالب لا ينتمي إلى الفوج المحدد.");
+        if (!subject || !body) throw new Error("أدخل الموضوع ونص الرسالة.");
+        const sent = await supabase.rpc("send_staff_student_message", {
+          p_group_no: groupNo, p_student_id: broadcast ? null : studentId, p_subject: subject, p_body: body
         });
-        if (sendError) throw sendError;
-        const sentCount = Number(result?.count || 0);
+        if (sent.error) throw sent.error;
         page.querySelector("#messageFirstBody").value = "";
         page.querySelector("#messageSubject").value = "";
-        feedback.style.color = "var(--success,#28734a)";
-        feedback.textContent = isBroadcast
-          ? `تم إرسال الرسالة إلى ${sentCount} طالبًا في الفوج G${groupNo}. لكل طالب محادثة خاصة.`
-          : "تم إرسال الرسالة وفتح المحادثة.";
+        feedback.textContent = broadcast ? "أُرسلت الرسالة إلى الفوج، وستظهر كمجموعة واحدة داخل صندوق المراسلات الخاصة." : "تم إرسال الرسالة الخاصة.";
         await loadConversations();
-        const firstConversationId = result?.conversation_ids?.[0];
-        if (!isBroadcast && firstConversationId) await openConversation(firstConversationId);
-      } catch (err) {
-        feedback.style.color = "var(--danger,#a33b32)";
-        feedback.textContent = err.message || "تعذر إرسال الرسالة.";
-      }
+        page.querySelector("#privateInboxPanel").open = true;
+      } catch (err) { feedback.textContent = err.message || "تعذر إرسال الرسالة."; }
     };
   }
 
   async function loadConversations() {
-    const { data, error } = await supabase.from("student_conversations")
-      .select("id,student_id,group_no,subject,created_at,updated_at")
+    const result = await supabase.from("student_conversations")
+      .select("id,student_id,group_no,subject,created_at,updated_at,created_by")
       .order("updated_at", { ascending: false });
-    if (error) {
-      list.innerHTML = `<p style="color:var(--danger);">تعذر تحميل المحادثات: ${escapeHtml(error.message)}. تحقق من تشغيل migration_account_messaging.sql.</p>`;
-      return;
-    }
-    conversations = data || [];
-    if (!conversations.length) { list.innerHTML = `<p style="color:var(--muted);">لا توجد محادثات حتى الآن.</p>`; return; }
-    list.innerHTML = `<div style="display:grid;gap:8px;">${conversations.map(c => `<button type="button" class="btn-secondary conversation-open-btn" data-id="${c.id}" style="text-align:right;padding:12px;border-radius:10px;">
-      <b>${escapeHtml(c.subject)}</b><span style="display:block;color:var(--muted);font-size:12px;margin-top:4px;">${isStaff ? `طالب: ${escapeHtml(c.student_id.slice(0,8))} · ` : ""}G${c.group_no} · ${formatDate(c.updated_at)}</span>
-    </button>`).join("")}</div>`;
+    if (result.error) { list.innerHTML = '<p class="empty-state">تعذر تحميل الرسائل الخاصة: ' + escapeHtml(result.error.message) + '</p>'; return; }
+    conversations = result.data || [];
+    if (!conversations.length) { list.innerHTML = '<p class="empty-state">لا توجد مراسلات خاصة حتى الآن.</p>'; return; }
+
+    // Group the per-student threads created by a single broadcast into one expandable row.
+    const grouped = new Map();
+    conversations.forEach(c => {
+      const key = [c.group_no, c.subject, c.created_by || "", c.created_at].join("|");
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key).push(c);
+    });
+    list.innerHTML = [...grouped.values()].map(items => {
+      if (items.length > 1) {
+        const inner = items.map(c => {
+          const student = allowedStudents.find(x => x.user_id === c.student_id);
+          const name = student ? student.display_name : (c.student_id === state.user.id ? "حسابي" : "طالب");
+          return '<button type="button" class="btn-secondary conversation-open-btn" data-id="' + c.id + '">' +
+            escapeHtml(name || "طالب") + '<small>' + formatDate(c.updated_at) + '</small></button>';
+        }).join("");
+        return '<details class="private-broadcast-group"><summary><strong>رسالة جماعية إلى G' + items[0].group_no +
+          '</strong><small>' + items.length + ' محادثة خاصة</small></summary><div class="private-broadcast-children">' + inner + '</div></details>';
+      }
+      const c = items[0];
+      const student = allowedStudents.find(x => x.user_id === c.student_id);
+      const name = isStaff ? (student?.display_name || "محادثة مع طالب") : "محادثة مع الإدارة";
+      return '<button type="button" class="btn-secondary conversation-open-btn private-thread-btn" data-id="' + c.id + '">' +
+        '<strong>' + escapeHtml(name) + '</strong><small>G' + c.group_no + ' · ' + escapeHtml(c.subject) + ' · ' + formatDate(c.updated_at) + '</small></button>';
+    }).join("");
     list.querySelectorAll(".conversation-open-btn").forEach(btn => btn.onclick = () => openConversation(btn.dataset.id));
   }
 
   async function openConversation(id) {
-    const c = conversations.find(x => x.id === id);
+    const c = conversations.find(x => String(x.id) === String(id));
     if (!c) return;
-    selected = c;
-    const { data: messages, error } = await supabase.from("student_messages")
-      .select("id,sender_id,body,created_at").eq("conversation_id", id).order("created_at");
-    if (error) { detail.style.display = "block"; detail.innerHTML = `<p style="color:var(--danger);">${escapeHtml(error.message)}</p>`; return; }
+    const result = await supabase.from("student_messages").select("id,sender_id,body,created_at")
+      .eq("conversation_id", id).order("created_at");
+    if (result.error) { detail.style.display = "block"; detail.textContent = result.error.message; return; }
+    const ids = [...new Set((result.data || []).map(m => m.sender_id))];
+    const profiles = ids.length ? await supabase.from("student_profiles").select("user_id,display_name").in("user_id", ids) : { data: [] };
+    const names = new Map((profiles.data || []).map(p => [p.user_id, p.display_name]));
     detail.style.display = "block";
-    detail.innerHTML = `<h3 style="font-size:17px;color:var(--brown-dark);margin-bottom:4px;">${escapeHtml(c.subject)}</h3>
-      <p style="color:var(--muted);font-size:12px;margin-bottom:14px;">الفوج G${c.group_no}</p>
-      <div style="display:grid;gap:9px;margin-bottom:14px;">${(messages || []).map(m => `<div style="max-width:90%;justify-self:${m.sender_id === state.user.id ? "end" : "start"};background:${m.sender_id === state.user.id ? "var(--cream,#f7f0e5)" : "#fff"};border:1px solid var(--line);border-radius:12px;padding:10px 12px;">
-        <p style="white-space:pre-wrap;line-height:1.7;margin:0;">${escapeHtml(m.body)}</p><small style="display:block;color:var(--muted);margin-top:5px;">${m.sender_id === state.user.id ? "أنت" : "الطرف الآخر"} · ${formatDate(m.created_at)}</small>
-      </div>`).join("")}</div>
-      <form id="replyStudentMessage" style="display:grid;gap:8px;"><textarea id="replyStudentBody" class="form-control" rows="3" maxlength="5000" required placeholder="اكتب ردك..."></textarea><button class="btn-primary" type="submit" style="width:auto;justify-self:start;">إرسال الرد</button></form>
-      <div id="replyStudentFeedback" role="status" style="font-size:13px;margin-top:8px;"></div>`;
+    detail.innerHTML = '<h3>' + escapeHtml(c.subject) + '</h3><p class="learning-hint">محادثة خاصة · الفوج G' + c.group_no + '</p><div class="private-message-thread">' +
+      (result.data || []).map(m => {
+        const mine = m.sender_id === state.user.id;
+        const name = names.get(m.sender_id) || (mine ? state.studentDisplayName || "أنت" : (isStaff ? "الطالب" : "الإدارة"));
+        return '<article class="private-message-bubble ' + (mine ? "mine" : "") + '"><strong>' + escapeHtml(name) +
+          '</strong><p>' + escapeHtml(m.body) + '</p><time>' + formatDate(m.created_at) + '</time></article>';
+      }).join("") + '</div><form id="replyStudentMessage" class="private-reply-form"><textarea id="replyStudentBody" class="form-control" rows="2" maxlength="5000" required placeholder="اكتب ردك الخاص..."></textarea><button class="btn-primary" type="submit">إرسال الرد</button></form><div id="replyStudentFeedback" class="learning-hint"></div>';
     detail.querySelector("#replyStudentMessage").onsubmit = async e => {
       e.preventDefault();
-      const btn = e.submitter; btn.disabled = true;
-      const body = detail.querySelector("#replyStudentBody").value.trim();
+      const btn = e.submitter, body = detail.querySelector("#replyStudentBody").value.trim();
+      if (!body) return;
+      btn.disabled = true;
       try {
-        const { error: sendError } = await supabase.from("student_messages").insert({ conversation_id: c.id, sender_id: state.user.id, body });
-        if (sendError) throw sendError;
+        const sent = await supabase.from("student_messages").insert({ conversation_id: c.id, sender_id: state.user.id, body });
+        if (sent.error) throw sent.error;
         await loadConversations(); await openConversation(c.id);
       } catch (err) { detail.querySelector("#replyStudentFeedback").textContent = err.message || "تعذر إرسال الرد."; }
       finally { btn.disabled = false; }
     };
   }
+
+  await loadGroupChat();
   await loadConversations();
 }
-
 // 19. PAGE: MINIMAL ADMIN FOR OWNER ONLY (#/admin)
 async function renderAdminView(page) {
   page.innerHTML = `
