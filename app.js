@@ -788,6 +788,79 @@ function renderPasswordRecoveryScreen() {
 }
 
 // 9. LOGGED-IN APP SHELL & ROUTER
+function startBinaryRain() {
+  const host = document.getElementById("app");
+  if (!host) return;
+  let canvas = document.getElementById("binaryRainCanvas");
+  if (!canvas) {
+    canvas = document.createElement("canvas");
+    canvas.id = "binaryRainCanvas";
+    canvas.setAttribute("aria-hidden", "true");
+    host.prepend(canvas);
+  }
+  const ctx = canvas.getContext("2d", { alpha: true });
+  if (!ctx) return;
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let width = 0, height = 0, columns = [], raf = 0, lastFrame = 0;
+  const fontSize = 15;
+  const resize = () => {
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.35);
+    width = window.innerWidth;
+    height = window.innerHeight;
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
+    canvas.style.width = width + "px";
+    canvas.style.height = height + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const count = Math.ceil(width / 17);
+    columns = Array.from({length: count}, () => ({
+      y: Math.random() * height,
+      speed: 1.1 + Math.random() * 2.3,
+      length: 9 + Math.floor(Math.random() * 17)
+    }));
+    ctx.clearRect(0, 0, width, height);
+  };
+  const draw = (time) => {
+    if (document.hidden) { raf = requestAnimationFrame(draw); return; }
+    if (time - lastFrame < 34) { raf = requestAnimationFrame(draw); return; }
+    lastFrame = time;
+    ctx.fillStyle = "rgba(231, 220, 205, 0.13)";
+    ctx.fillRect(0, 0, width, height);
+    ctx.font = fontSize + "px ui-monospace, SFMono-Regular, Consolas, monospace";
+    ctx.textAlign = "center";
+    for (let i = 0; i < columns.length; i++) {
+      const col = columns[i];
+      const x = i * 17 + 8;
+      for (let j = 0; j < col.length; j++) {
+        const y = col.y - j * fontSize;
+        if (y < -fontSize || y > height + fontSize) continue;
+        const bright = j === 0;
+        ctx.fillStyle = bright ? "rgba(232, 199, 157, .62)" : `rgba(126, 91, 59, ${Math.max(.045, .19 - j * .008)})`;
+        ctx.fillText(Math.random() > .5 ? "1" : "0", x, y);
+      }
+      col.y += col.speed;
+      if (col.y - col.length * fontSize > height && Math.random() > .975) {
+        col.y = -Math.random() * height * .35;
+        col.speed = 1.1 + Math.random() * 2.3;
+      }
+    }
+    raf = requestAnimationFrame(draw);
+  };
+  if (state._binaryRainResize) window.removeEventListener("resize", state._binaryRainResize);
+  state._binaryRainResize = resize;
+  window.addEventListener("resize", resize, { passive: true });
+  resize();
+  if (reduceMotion) {
+    ctx.font = fontSize + "px ui-monospace, SFMono-Regular, Consolas, monospace";
+    ctx.fillStyle = "rgba(126, 91, 59, .12)";
+    for (let x = 8; x < width; x += 17) {
+      for (let y = 18; y < height; y += 23) ctx.fillText(Math.random() > .5 ? "1" : "0", x, y);
+    }
+    return;
+  }
+  if (state._binaryRainFrame) cancelAnimationFrame(state._binaryRainFrame);
+  state._binaryRainFrame = requestAnimationFrame(draw);
+}
 function renderApp() {
   if (recoveryMode) {
     if (!document.getElementById("pwResetForm")) renderPasswordRecoveryScreen();
@@ -844,44 +917,44 @@ function renderApp() {
         </div>
 
         <nav class="sidebar-nav" aria-label="القائمة الرئيسية">
-          <section class="nav-section">
-            <div class="nav-section-title">الرئيسية والملفات</div>
+          <details class="nav-section">
+            <summary class="nav-section-toggle"><span>الرئيسية والملفات</span><svg class="nav-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
             <a href="#/" class="nav-link ${hash === "#/" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7h-6v7H4a1 1 0 0 1-1-1z"/></svg><span>الرئيسية</span></a>
             <a href="#/groupes" class="nav-link ${hash.startsWith("#/groupe") ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v15H4zM8 3v4M16 3v4M4 9h16M8 13h3M8 16h7"/></svg><span>المواد والأفواج</span></a>
             <a href="#/search" class="nav-link ${hash === "#/search" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><span>ملفاتي والبحث</span></a>
             <a href="#/favorites" class="nav-link ${hash === "#/favorites" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v14H4zM8 3h8v3H8zM8 10h8M8 14h6"/></svg><span>ملفاتي المفضلة</span></a>
-          </section>
+          </details>
 
-          <section class="nav-section">
-            <div class="nav-section-title">التعلم والتقييم</div>
+          <details class="nav-section">
+            <summary class="nav-section-toggle"><span>التعلم والتقييم</span><svg class="nav-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
             <a href="#/exams" class="nav-link ${hash === "#/exams" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7"/></svg><span>أرشيف الامتحانات</span></a>
             <a href="#/quizzes" class="nav-link ${hash === "#/quizzes" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="m8 9 2 2 4-4M8 16h8"/></svg><span>اختبارات QCM والتصويت</span></a>
             <a href="#/discussions" class="nav-link ${hash === "#/discussions" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v12H8l-4 3zM8 9h8M8 13h5"/></svg><span>الأسئلة والأجوبة</span></a>
             <a href="#/notes" class="nav-link ${hash === "#/notes" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5zM8 8h8M8 12h8M8 16h5"/></svg><span>ملاحظاتي الدراسية</span></a>
             <a href="#/study-plan" class="nav-link ${hash === "#/study-plan" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18M8 13h3M8 17h7"/></svg><span>مخطط المراجعة</span></a>
             <a href="#/progress" class="nav-link ${hash === "#/progress" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h17M8 15v-4M13 15V7M18 15V3"/></svg><span>تقدمي الدراسي</span></a>
-          </section>
+          </details>
 
-          <section class="nav-section">
-            <div class="nav-section-title">الحياة الجامعية والتواصل</div>
+          <details class="nav-section">
+            <summary class="nav-section-toggle"><span>الحياة الجامعية والتواصل</span><svg class="nav-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
             <a href="#/teachers" class="nav-link ${hash.startsWith("#/teacher") ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 20v-1.4A4.6 4.6 0 0 1 8.1 14h1.8a4.6 4.6 0 0 1 4.6 4.6V20zM16 5.5a3 3 0 0 1 0 5.8M17 14a4.3 4.3 0 0 1 3.5 4.2V20h-3"/></svg><span>الأساتذة</span></a>
             <a href="#/horaire" class="nav-link ${hash === "#/horaire" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 9h16M8 13h2M13 13h3M8 16h2"/></svg><span>الجدول الزمني</span></a>
             <a href="#/announcements" class="nav-link ${hash === "#/announcements" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l9 4V6l-9 4zM8 14l2 6h3l-2-5M19 9a4 4 0 0 1 0 6"/></svg><span>الإعلانات</span></a>
             <a href="#/messages" class="nav-link ${hash === "#/messages" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v12H8l-4 3zM8 9h8M8 13h5"/></svg><span>الرسائل</span></a>
             <a href="#/notifications" class="nav-link ${hash === "#/notifications" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span>الإشعارات</span><span class="nav-notification-dot" id="sidebarNotificationUnread" hidden></span></a>
             <a href="#/support" class="nav-link ${hash === "#/support" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg><span>الإبلاغ عن مشكلة</span></a>
-          </section>
+          </details>
 
-          ${(isOwner || isAdmin || isUploader) ? `<section class="nav-section"><div class="nav-section-title">إدارة المحتوى</div>
+          ${(isOwner || isAdmin || isUploader) ? `<details class="nav-section"><summary class="nav-section-toggle"><span>إدارة المحتوى</span><svg class="nav-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
             <a href="#/upload" class="nav-link ${hash === "#/upload" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m-5 5 5-5 5 5M4 15v5h16v-5"/></svg><span>رفع الملفات</span></a>
             ${(isOwner || isAdmin) ? `<a href="#/admin" class="nav-link ${hash === "#/admin" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM8 8h8M8 12h8M8 16h5"/></svg><span>إدارة الملفات</span></a>` : ""}
             ${isOwner ? `<a href="#/owner-users" class="nav-link ${hash === "#/owner-users" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20v-1a6 6 0 0 1 12 0v1M17 8h4M19 6v4"/></svg><span>إدارة المستخدمين</span></a><a href="#/owner-insights" class="nav-link ${hash === "#/owner-insights" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h17M8 15v-4M13 15V7M18 15V3"/></svg><span>إحصائيات المالك</span></a>` : ""}
-          </section>` : ""}
-          <section class="nav-section nav-section-account">
-            <div class="nav-section-title">الحساب</div>
+          </details>` : ""}
+          <details class="nav-section nav-section-account">
+            <summary class="nav-section-toggle"><span>الحساب</span><svg class="nav-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
             <a href="#/preferences" class="nav-link ${hash === "#/preferences" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/><circle cx="12" cy="12" r="4"/></svg><span>تخصيص الواجهة</span></a>
             <a href="#/compte" class="nav-link ${hash === "#/compte" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>حسابي</span></a>
-          </section>
+          </details>
         </nav>
 
         <div class="sidebar-footer">
@@ -931,6 +1004,8 @@ function renderApp() {
 
   attachShellEvents();
   dispatchRoute(hash);
+  updateSidebarActiveRoute(hash);
+  startBinaryRain();
 }
 
 // Owner and admin are the only roles that manage teachers and the timetable.
@@ -4513,12 +4588,29 @@ function renderNotFoundView(page) {
 }
 
 // 23. HASH CHANGE LISTENER
+function updateSidebarActiveRoute(hash) {
+  const nav = document.querySelector(".sidebar-nav");
+  if (!nav) return;
+  nav.querySelectorAll(".nav-link").forEach(link => {
+    const href = link.getAttribute("href") || "";
+    const active = href === hash
+      || (href === "#/groupes" && hash.startsWith("#/groupe/"))
+      || (href === "#/teachers" && /^#\\/teacher(?:s)?(?:\\/|$)/.test(hash));
+    link.classList.toggle("active", active);
+    if (active) {
+      const section = link.closest("details.nav-section");
+      if (section) section.open = true;
+    }
+  });
+  nav.querySelectorAll("details.nav-section").forEach(section => {
+    if (!section.querySelector(".nav-link.active")) section.open = false;
+  });
+}
+
 window.addEventListener("hashchange", () => {
   if (recoveryMode) return;
-  const hash = location.hash;
-  if (!hash.startsWith("#/")) {
-    return;
-  }
+  const hash = normalizeHash(location.hash);
+  if (!hash.startsWith("#/")) return;
   if (!state.user) {
     if (hash !== "#/") {
       state.redirectAfterLogin = hash;
@@ -4527,5 +4619,17 @@ window.addEventListener("hashchange", () => {
     }
     return;
   }
-  renderApp();
+  const page = document.getElementById("pageContent");
+  if (page) {
+    state.currentRoute = hash;
+    dispatchRoute(hash);
+    updateSidebarActiveRoute(hash);
+    const sidebar = document.getElementById("appSidebar");
+    const backdrop = document.getElementById("sidebarBackdrop");
+    if (sidebar) sidebar.classList.remove("open");
+    if (backdrop) backdrop.classList.remove("open");
+    state.sidebarOpen = false;
+  } else {
+    renderApp();
+  }
 });
