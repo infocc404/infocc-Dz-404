@@ -928,7 +928,8 @@ function renderApp() {
           <details class="nav-section">
             <summary class="nav-section-toggle"><span>التعلم والتقييم</span><svg class="nav-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
             <a href="#/exams" class="nav-link ${hash === "#/exams" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7"/></svg><span>أرشيف الامتحانات</span></a>
-            <a href="#/quizzes" class="nav-link ${hash === "#/quizzes" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="m8 9 2 2 4-4M8 16h8"/></svg><span>اختبارات QCM والتصويت</span></a>
+            <a href="#/quizzes" class="nav-link ${hash === "#/quizzes" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="m8 9 2 2 4-4M8 16h8"/></svg><span>اختبارات QCM</span></a>
+            <a href="#/polls" class="nav-link ${hash === "#/polls" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 9h8M8 13h3M14 13h2M8 17h8"/></svg><span>التصويت والاستطلاعات</span></a>
             <a href="#/discussions" class="nav-link ${hash === "#/discussions" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v12H8l-4 3zM8 9h8M8 13h5"/></svg><span>الأسئلة والأجوبة</span></a>
             <a href="#/notes" class="nav-link ${hash === "#/notes" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5zM8 8h8M8 12h8M8 16h5"/></svg><span>ملاحظاتي الدراسية</span></a>
             <a href="#/study-plan" class="nav-link ${hash === "#/study-plan" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18M8 13h3M8 17h7"/></svg><span>مخطط المراجعة</span></a>
@@ -1287,6 +1288,7 @@ function dispatchRoute(hash) {
   if (hash === "#/search") { renderSearchPage(page); return; }
   if (hash === "#/exams") { renderExamsArchiveView(page); return; }
   if (hash === "#/quizzes") { renderLearningFeaturePage(page, "quizzes"); return; }
+  if (hash === "#/polls") { renderLearningFeaturePage(page, "polls"); return; }
   if (hash === "#/discussions") { renderLearningFeaturePage(page, "discussions"); return; }
   if (hash === "#/notes") { renderLearningFeaturePage(page, "notes"); return; }
   if (hash === "#/study-plan") { renderLearningFeaturePage(page, "planner"); return; }
@@ -1587,6 +1589,10 @@ async function renderLearningFeaturePage(page,kind){
   for(const q of data||[]){const {data:answers}=await supabase.from("discussion_answers").select("body,created_at").eq("question_id",q.id).order("created_at");const el=body.querySelector("#ans-"+q.id);if(el)el.innerHTML=(answers||[]).map(x=>'<div class="learning-answer">'+escapeHtml(x.body)+'</div>').join("")||'<small>لا توجد إجابات.</small>';}
   body.querySelectorAll(".answer-form").forEach(form=>form.onsubmit=async e=>{e.preventDefault();const {error:err}=await supabase.from("discussion_answers").insert({question_id:form.dataset.q,author_id:uid,body:String(new FormData(form).get("body")).trim()});if(err){learningMsg(msg,err.message,true);return;}await renderLearningFeaturePage(page,kind);});return;
  }
+ if(kind==="polls"){
+  await renderCoursePolls(body,uid,state.role,state.uploaderGroup,page);
+  return;
+ }
  if(kind==="quizzes"){
   const quizStaff=["owner","admin","uploader"].includes(state.role),isHead=state.role==="uploader",ownGroup=Number(state.uploaderGroup);
   const {data:quizzes,error}=await supabase.from("quizzes").select("id,title,description,subject_id,group_no,duration_minutes,is_published,deleted_at").is("deleted_at",null).order("created_at",{ascending:false});
@@ -1693,7 +1699,6 @@ async function renderLearningFeaturePage(page,kind){
    body.querySelectorAll("[data-restore-quiz]").forEach(btn=>btn.onclick=async()=>{btn.disabled=true;const {error}=await supabase.rpc("owner_restore_quiz",{p_quiz_id:btn.dataset.restoreQuiz});if(error){btn.disabled=false;learningMsg(msg,"تعذر استرجاع الاختبار: "+error.message,true);return;}await renderLearningFeaturePage(page,kind);learningMsg(page.querySelector("#learnMsg"),"تم استرجاع الاختبار بنجاح.",false);});
    body.querySelectorAll("[data-restore-question]").forEach(btn=>btn.onclick=async()=>{btn.disabled=true;const {error}=await supabase.rpc("owner_restore_quiz_question",{p_question_id:btn.dataset.restoreQuestion});if(error){btn.disabled=false;learningMsg(msg,"تعذر استرجاع السؤال: "+error.message,true);return;}await renderLearningFeaturePage(page,kind);learningMsg(page.querySelector("#learnMsg"),"تم استرجاع السؤال بنجاح.",false);});
   }
-  await renderCoursePolls(body,uid,state.role,state.uploaderGroup,page);
   return;
  }
  if(kind==="progress"){
