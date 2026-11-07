@@ -4595,7 +4595,7 @@ function updateSidebarActiveRoute(hash) {
     const href = link.getAttribute("href") || "";
     const active = href === hash
       || (href === "#/groupes" && hash.startsWith("#/groupe/"))
-      || (href === "#/teachers" && /^#\\/teacher(?:s)?(?:\\/|$)/.test(hash));
+      || (href === "#/teachers" && hash.startsWith("#/teacher/"));
     link.classList.toggle("active", active);
     if (active) {
       const section = link.closest("details.nav-section");
