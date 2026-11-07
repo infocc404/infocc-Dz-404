@@ -3430,7 +3430,14 @@ async function renderOwnerUsersView(page) {
 
 
 // Private owner/supervisor-to-student inbox. RLS enforces the group boundary in Supabase.
+let activeGroupChatChannel = null;
+
 async function renderStudentMessagesView(page) {
+  // Close the previous page's listener before opening a new chat view.
+  if (activeGroupChatChannel) {
+    supabase.removeChannel(activeGroupChatChannel);
+    activeGroupChatChannel = null;
+  }
   const isStaff = ["owner", "admin", "uploader"].includes(state.role);
   const canChooseAnyGroup = ["owner", "admin"].includes(state.role);
   const availableGroups = canChooseAnyGroup ? [1,2,3,4,5,6,7,8,9,10] :
@@ -3462,16 +3469,20 @@ async function renderStudentMessagesView(page) {
   let conversations = [];
   let allowedStudents = [];
 
+  let groupChatLoadVersion = 0;
   async function loadGroupChat() {
+    const loadVersion = ++groupChatLoadVersion;
     chatTitle.textContent = activeChat.type === "general" ? "الشات العام · جميع الأفواج" : "شات الفوج G" + activeChat.group;
     chatMessages.innerHTML = '<p class="empty-state">جارٍ تحميل الرسائل...</p>';
     const result = await supabase.rpc("get_student_group_chat_messages", {
       p_chat_type: activeChat.type, p_group_no: activeChat.group
     });
+    if (loadVersion !== groupChatLoadVersion) return;
     if (result.error) {
       chatMessages.innerHTML = '<p class="empty-state">تعذر تحميل الشات: ' + escapeHtml(result.error.message) + '<br>طبّق migration_group_chats.sql في Supabase أولًا.</p>';
       return;
     }
+    if (loadVersion !== groupChatLoadVersion) return;
     const messages = result.data || [];
     if (!messages.length) {
       chatMessages.innerHTML = '<div class="group-chat-empty"><strong>بداية محادثة جديدة</strong><p>لا توجد رسائل بعد. كن أول من يشارك.</p></div>';
@@ -3629,6 +3640,26 @@ async function renderStudentMessagesView(page) {
       finally { btn.disabled = false; }
     };
   }
+
+  // Listen for new rows. Postgres RLS ensures each member receives only
+  // events for rooms they are already allowed to read.
+  activeGroupChatChannel = supabase
+    .channel("student-group-chat-" + state.user.id + "-" + Date.now())
+    .on("postgres_changes", {
+      event: "INSERT", schema: "public", table: "student_group_chat_messages"
+    }, payload => {
+      const message = payload.new || {};
+      const belongsToOpenRoom = message.chat_type === activeChat.type &&
+        (activeChat.type === "general" ? message.group_no == null : Number(message.group_no) === Number(activeChat.group));
+      if (belongsToOpenRoom) loadGroupChat();
+    })
+    .subscribe(status => {
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        chatFeedback.textContent = "تعذر الاتصال بالتحديث الفوري. تحقق من اتصال الإنترنت وإعداد Realtime.";
+      } else if (status === "SUBSCRIBED") {
+        chatFeedback.textContent = "التحديث الفوري للرسائل مفعّل.";
+      }
+    });
 
   await loadGroupChat();
   await loadConversations();
