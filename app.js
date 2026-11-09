@@ -885,27 +885,32 @@ function renderApp() {
         <nav class="sidebar-nav figma-nav" aria-label="القائمة الرئيسية">
           <div class="figma-nav-caption">الرئيسية</div>
           <a href="#/" class="nav-link ${hash === "#/" ? "active" : ""}"><span class="nav-icon-box">⌂</span><span>الرئيسية</span></a>
-          <details class="nav-section figma-nav-accordion" ${(["#/search","#/favorites","#/groupes","#/teachers","#/horaire","#/exams","#/quizzes","#/notes","#/study-plan","#/progress"].some(r=>hash===r||hash.startsWith(r+"/")) || hash.startsWith("#/teacher/")) ? "open" : ""}>
+
+          <div class="figma-nav-caption">الدراسة</div>
+          <details class="nav-section figma-nav-accordion" ${(["#/search","#/favorites","#/quizzes","#/notes","#/study-plan","#/progress"].some(r=>hash===r||hash.startsWith(r+"/")) ? "open" : "")}>
             <summary class="figma-nav-group-title"><span class="nav-icon-box">▣</span><span>الدراسة والموارد</span><span class="figma-nav-chevron">⌄</span></summary>
             <div class="figma-nav-submenu">
               <a href="#/search" class="nav-link ${hash === "#/search" ? "active" : ""}"><span class="nav-icon-box">▤</span><span>مكتبتي وملفاتي</span></a>
               <a href="#/favorites" class="nav-link ${hash === "#/favorites" ? "active" : ""}"><span class="nav-icon-box">♡</span><span>ملفاتي المفضلة</span></a>
-              <details class="nav-section figma-nav-accordion figma-nav-nested" ${(hash.startsWith("#/groupe")||hash.startsWith("#/teacher")||hash==="#/horaire"||hash==="#/exams")?"open":""}>
-                <summary class="figma-nav-group-title figma-nav-nested-title"><span class="nav-icon-box">▣</span><span>المجموعات</span><span class="figma-nav-chevron">⌄</span></summary>
-                <div class="figma-nav-submenu">
-                  <a href="#/groupes" class="nav-link ${hash.startsWith("#/groupe") ? "active" : ""}"><span class="nav-icon-box">▤</span><span>الدروس والمحاضرات</span></a>
-                  <a href="#/teachers" class="nav-link ${hash.startsWith("#/teacher") ? "active" : ""}"><span class="nav-icon-box">♧</span><span>دليل الأساتذة</span></a>
-                  <a href="#/horaire" class="nav-link ${hash === "#/horaire" ? "active" : ""}"><span class="nav-icon-box">▦</span><span>الجدول الدراسي</span></a>
-                  <a href="#/exams" class="nav-link ${hash === "#/exams" ? "active" : ""}"><span class="nav-icon-box">▧</span><span>أرشيف الامتحانات</span></a>
-                </div>
-              </details>
               <a href="#/quizzes" class="nav-link ${hash === "#/quizzes" ? "active" : ""}"><span class="nav-icon-box">✓</span><span>اختبارات QCM</span></a>
               <a href="#/notes" class="nav-link ${hash === "#/notes" ? "active" : ""}"><span class="nav-icon-box">✎</span><span>ملاحظاتي الدراسية</span></a>
               <a href="#/study-plan" class="nav-link ${hash === "#/study-plan" ? "active" : ""}"><span class="nav-icon-box">◷</span><span>مخطط المراجعة</span></a>
               <a href="#/progress" class="nav-link ${hash === "#/progress" ? "active" : ""}"><span class="nav-icon-box">▤</span><span>تقدمي الدراسي</span></a>
             </div>
           </details>
-          <details class="nav-section figma-nav-accordion" ${(["#/discussions","#/polls","#/announcements","#/notifications","#/messages"].some(r=>hash===r||hash.startsWith(r+"/"))?"open":"")}>
+
+          <details class="nav-section figma-nav-accordion" ${(hash.startsWith("#/groupe")||hash.startsWith("#/teacher")||hash==="#/horaire"||hash==="#/exams") ? "open" : ""}>
+            <summary class="figma-nav-group-title ${(hash.startsWith("#/groupe")||hash.startsWith("#/teacher")||hash==="#/horaire"||hash==="#/exams") ? "active" : ""}"><span class="nav-icon-box">▦</span><span>المجموعات</span><span class="figma-nav-chevron">⌄</span></summary>
+            <div class="figma-nav-submenu">
+              <a href="#/groupes" class="nav-link ${hash.startsWith("#/groupe") ? "active" : ""}"><span class="nav-icon-box">▤</span><span>الأفواج والدروس</span></a>
+              <a href="#/teachers" class="nav-link ${hash.startsWith("#/teacher") ? "active" : ""}"><span class="nav-icon-box">♧</span><span>دليل الأساتذة</span></a>
+              <a href="#/horaire" class="nav-link ${hash === "#/horaire" ? "active" : ""}"><span class="nav-icon-box">▦</span><span>الجدول الدراسي</span></a>
+              <a href="#/exams" class="nav-link ${hash === "#/exams" ? "active" : ""}"><span class="nav-icon-box">▧</span><span>أرشيف الامتحانات</span></a>
+            </div>
+          </details>
+
+          <div class="figma-nav-caption">المجتمع</div>
+          <details class="nav-section figma-nav-accordion" ${(["#/discussions","#/polls","#/announcements","#/notifications","#/messages"].some(r=>hash===r||hash.startsWith(r+"/")) ? "open" : "")}>
             <summary class="figma-nav-group-title"><span class="nav-icon-box">◎</span><span>التواصل والإعلانات</span><span class="figma-nav-chevron">⌄</span></summary>
             <div class="figma-nav-submenu">
               <a href="#/discussions" class="nav-link ${hash === "#/discussions" ? "active" : ""}"><span class="nav-icon-box">◎</span><span>مساحة الأسئلة</span></a>
@@ -915,8 +920,10 @@ function renderApp() {
               <a href="#/messages" class="nav-link ${hash === "#/messages" ? "active" : ""}"><span class="nav-icon-box">☏</span><span>المراسلات والشات</span></a>
             </div>
           </details>
+
           ${(isOwner || isAdmin || isUploader) ? `
-            <details class="nav-section figma-nav-accordion" ${(["#/upload","#/admin","#/owner-users","#/owner-insights"].some(r=>hash===r||hash.startsWith(r+"/"))?"open":"")}>
+            <div class="figma-nav-caption">الإدارة</div>
+            <details class="nav-section figma-nav-accordion" ${(["#/upload","#/admin","#/owner-users","#/owner-insights"].some(r=>hash===r||hash.startsWith(r+"/")) ? "open" : "")}>
               <summary class="figma-nav-group-title"><span class="nav-icon-box">⚙</span><span>إدارة المنصة</span><span class="figma-nav-chevron">⌄</span></summary>
               <div class="figma-nav-submenu">
                 <a href="#/upload" class="nav-link ${hash === "#/upload" ? "active" : ""}"><span class="nav-icon-box">＋</span><span>رفع الملفات</span></a>
@@ -925,7 +932,9 @@ function renderApp() {
               </div>
             </details>
           ` : ""}
-          <details class="nav-section figma-nav-accordion" ${(["#/compte","#/preferences","#/support"].some(r=>hash===r||hash.startsWith(r+"/"))?"open":"")}>
+
+          <div class="figma-nav-caption">شخصي</div>
+          <details class="nav-section figma-nav-accordion" ${(["#/compte","#/preferences","#/support"].some(r=>hash===r||hash.startsWith(r+"/")) ? "open" : "")}>
             <summary class="figma-nav-group-title"><span class="nav-icon-box">♙</span><span>الحساب والمساعدة</span><span class="figma-nav-chevron">⌄</span></summary>
             <div class="figma-nav-submenu">
               <a href="#/compte" class="nav-link ${hash === "#/compte" ? "active" : ""}"><span class="nav-icon-box">♙</span><span>حسابي</span></a>
