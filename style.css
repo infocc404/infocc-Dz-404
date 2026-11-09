@@ -3046,3 +3046,63 @@ html,body{font-family:'IBM Plex Sans Arabic',sans-serif;font-size:15px;line-heig
  .figma-sidebar.open{transform:translateX(0)!important}
  .figma-main{margin-right:0!important;margin-left:0!important}
 }
+
+
+/* Compact, vertically-flowing dashboard and neatly grouped RTL navigation */
+.figma-sidebar{display:flex!important;flex-direction:column!important}
+.figma-nav{padding:12px 11px 16px!important;gap:5px!important;overflow-y:auto!important;overscroll-behavior:contain}
+.figma-nav-caption{padding:7px 11px 5px!important;font-size:11px!important;color:#6b5947!important}
+.figma-nav .nav-link{min-height:37px!important;padding:7px 10px!important;font-size:12px!important;gap:9px!important;border-radius:9px!important}
+.figma-nav .nav-icon-box{width:19px!important;height:19px!important;flex-basis:19px!important;font-size:14px!important}
+.figma-nav-accordion{display:block;margin:3px 0!important;border:1px solid #eee5d9;border-radius:11px;background:#fffefa}
+.figma-nav-group-title{min-height:40px!important;padding:7px 10px!important;font-size:12px!important;gap:9px!important}
+.figma-nav-group-title .nav-icon-box{width:19px!important;height:19px!important;flex-basis:19px!important;font-size:14px!important}
+.figma-nav-accordion[open]>.figma-nav-group-title{background:#f4ecdf;border-radius:10px 10px 0 0}
+.figma-nav-submenu{margin:2px 8px 7px 0!important;padding:3px 8px 3px 0!important;gap:2px!important}
+.figma-nav-submenu .nav-link{min-height:33px!important;padding:5px 9px!important;font-size:11px!important}
+.figma-nav-nested{margin:3px 0!important;background:#faf6ef;border-color:#eee4d6}
+.figma-nav-nested-title{min-height:35px!important;font-size:11px!important}
+.figma-nav-nested .figma-nav-submenu{margin-right:7px!important}
+.figma-sidebar-profile{padding:10px 13px 8px!important}
+.figma-sidebar-note{margin:5px 12px 7px!important;padding:9px 10px!important}
+.figma-sidebar-copy{padding:3px 0 8px!important}
+.figma-main{min-height:100vh}
+.figma-page-body{padding:18px 28px 38px!important;min-height:calc(100vh - 68px)}
+.figma-hero{min-height:118px!important;padding:19px 27px!important;border-radius:16px!important}
+.figma-hero h1{font-size:clamp(20px,1.8vw,26px)!important;margin:7px 0 5px!important;line-height:1.5!important}
+.figma-hero p{font-size:12px!important;line-height:1.7!important}
+.figma-hero-action{margin-top:9px!important;padding:7px 15px!important}
+.figma-stats-grid{gap:10px!important;margin:13px 0 15px!important}
+.figma-stat-card{min-height:78px!important;padding:11px 15px!important;border-radius:13px!important}
+.figma-stat-card>strong{font-size:22px!important}
+.figma-dashboard-grid{grid-template-columns:minmax(0,1fr)!important;gap:13px!important}
+.figma-courses-panel{min-height:0!important}
+.figma-panel{padding:17px!important;border-radius:15px!important}
+.figma-panel-heading{margin-bottom:12px!important}
+.figma-panel-heading h2{font-size:16px!important}
+.figma-courses-grid{gap:9px!important}
+.figma-course-card{min-height:67px!important;padding:10px 12px!important}
+.figma-side-panels{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:11px!important}
+.figma-week-panel,.figma-updates-panel{padding:15px!important}
+.figma-week-row,.figma-update-row{padding:9px 0!important}
+.figma-home-footer{padding:17px 0 5px!important}
+@media(min-width:1101px){
+ .figma-page-body{padding-inline:clamp(24px,3vw,46px)!important}
+ .figma-dashboard-grid{max-width:1120px;margin-inline:auto}
+ .figma-stats-grid{max-width:1120px;margin-inline:auto!important}
+}
+@media(max-width:1100px) and (min-width:761px){
+ .figma-page-body{padding:16px 20px 30px!important}
+ .figma-hero{min-height:110px!important}
+ .figma-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .figma-main{margin-right:225px!important}
+}
+@media(max-width:760px){
+ .figma-page-body{padding:13px 12px 28px!important}
+ .figma-hero{min-height:105px!important;padding:16px!important}
+ .figma-hero h1{font-size:19px!important}
+ .figma-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+ .figma-stat-card{min-height:72px!important}
+ .figma-panel{padding:14px!important}
+ .figma-courses-grid{grid-template-columns:1fr!important}
+}
