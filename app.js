@@ -974,7 +974,9 @@ function applyThemePreference(theme) {
   try { localStorage.setItem("info-cc-404-theme", selected); } catch (_) {}
   const button = document.getElementById("themeToggleBtn");
   if (button) {
-    button.textContent = selected === "dark" ? "الوضع الفاتح" : "الوضع الليلي";
+    button.textContent = "◐";
+    button.title = selected === "dark" ? "تفعيل الوضع الفاتح" : "تفعيل الوضع الليلي";
+    button.setAttribute("aria-label", button.title);
     button.setAttribute("aria-pressed", selected === "dark" ? "true" : "false");
   }
 }
