@@ -887,10 +887,17 @@ function renderApp() {
           <a href="#/" class="nav-link ${hash === "#/" ? "active" : ""}"><span class="nav-icon-box">⌂</span><span>الرئيسية</span></a>
           <a href="#/search" class="nav-link ${hash === "#/search" ? "active" : ""}"><span class="nav-icon-box">▤</span><span>مكتبتي وملفاتي</span></a>
           <a href="#/favorites" class="nav-link ${hash === "#/favorites" ? "active" : ""}"><span class="nav-icon-box">♡</span><span>ملفاتي المفضلة</span></a>
-          <a href="#/groupes" class="nav-link ${hash.startsWith("#/groupe") || hash === "#/groupes" ? "active" : ""}"><span class="nav-icon-box">▣</span><span>الدروس والمحاضرات</span></a>
-          <a href="#/teachers" class="nav-link ${hash.startsWith("#/teacher") ? "active" : ""}"><span class="nav-icon-box">♧</span><span>الأساتذة</span></a>
-          <a href="#/horaire" class="nav-link ${hash === "#/horaire" ? "active" : ""}"><span class="nav-icon-box">▦</span><span>الجدول الدراسي</span></a>
-          <a href="#/exams" class="nav-link ${hash === "#/exams" ? "active" : ""}"><span class="nav-icon-box">▧</span><span>أرشيف الامتحانات</span></a>
+          <details class="figma-nav-accordion" ${(hash.startsWith("#/groupe") || hash.startsWith("#/teacher") || hash === "#/horaire" || hash === "#/exams") ? "open" : ""}>
+            <summary class="figma-nav-group-title ${(hash.startsWith("#/groupe") || hash.startsWith("#/teacher") || hash === "#/horaire" || hash === "#/exams") ? "active" : ""}">
+              <span class="nav-icon-box">▣</span><span>المجموعات</span><span class="figma-nav-chevron" aria-hidden="true">⌄</span>
+            </summary>
+            <div class="figma-nav-submenu">
+              <a href="#/groupes" class="nav-link ${hash.startsWith("#/groupe") ? "active" : ""}"><span class="nav-icon-box">▤</span><span>الدروس والمحاضرات</span></a>
+              <a href="#/teachers" class="nav-link ${hash.startsWith("#/teacher") ? "active" : ""}"><span class="nav-icon-box">♧</span><span>دليل الأساتذة</span></a>
+              <a href="#/horaire" class="nav-link ${hash === "#/horaire" ? "active" : ""}"><span class="nav-icon-box">▦</span><span>الجدول الدراسي</span></a>
+              <a href="#/exams" class="nav-link ${hash === "#/exams" ? "active" : ""}"><span class="nav-icon-box">▧</span><span>أرشيف الامتحانات</span></a>
+            </div>
+          </details>
           <a href="#/quizzes" class="nav-link ${hash === "#/quizzes" ? "active" : ""}"><span class="nav-icon-box">✓</span><span>اختبارات QCM</span></a>
           <a href="#/polls" class="nav-link ${hash === "#/polls" ? "active" : ""}"><span class="nav-icon-box">▥</span><span>التصويت والاستطلاعات</span></a>
           <a href="#/notes" class="nav-link ${hash === "#/notes" ? "active" : ""}"><span class="nav-icon-box">✎</span><span>ملاحظاتي الدراسية</span></a>
