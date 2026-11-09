@@ -1779,7 +1779,7 @@ function renderHomeView(page) {
   const userLabel = state.studentDisplayName || state.user.email?.split("@")[0] || "طالب";
   const availableFiles = Array.isArray(state.filesCache) ? state.filesCache.length : 0;
   const subjects = (Array.isArray(SUBJECTS) ? SUBJECTS : []).slice(0, 7);
-  const subjectColors = ["sand", "sand", "sand", "sand", "sand", "sand", "sand"];
+  const subjectColors = ["sand", "sage", "honey", "rose", "sage", "sand", "olive"];
   const subjectIcons = ["01", "02", "03", "04", "05", "06", "07"];
   const subjectCards = subjects.map((subject, index) => `
     <a class="figma-course-card" href="#/groupes" aria-label="فتح مادة ${escapeHtml(subject.nameEn || subject.nameFr)}">
