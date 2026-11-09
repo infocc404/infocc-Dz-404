@@ -2813,3 +2813,181 @@ body{background:#f3ecdf;color:#3f3024}
  .figma-sidebar{overflow-y:auto}
  .figma-nav{overflow:visible}
 }
+
+
+/* ==========================================================================
+   INFO CC 404 — visual correction pass
+   Restore readable scale, calm hierarchy, generous spacing and robust layout.
+   This layer intentionally changes presentation only; app logic is untouched.
+   ========================================================================== */
+:root{
+  --sidebar-w:248px;
+  --topbar-h:68px;
+  --bg:#f4eee4;
+  --card:#fffdf8;
+  --ink:#392b20;
+  --muted:#81715f;
+  --line:#e8ddce;
+  --brown:#9a704c;
+  --brown-dark:#68482f;
+  --soft:#eee2d2;
+  --radius:16px;
+}
+html,body{font-family:'IBM Plex Sans Arabic',sans-serif;font-size:15px;line-height:1.75;background:#f4eee4;color:#392b20}
+.app-container.figma-app-shell{grid-template-columns:minmax(0,1fr) 248px;background:#f4eee4}
+.figma-sidebar{width:248px!important;background:#fffdf8!important;border-left:1px solid #e6dac9!important}
+.figma-brand{height:76px;min-height:76px;padding:0 19px!important;gap:12px}
+.figma-brand .sidebar-cap-icon{width:40px;height:40px;min-width:40px;border-radius:13px;font-size:13px;background:#68482f}
+.figma-brand .sidebar-brand-name{font-size:16px;gap:2px}
+.figma-brand .sidebar-brand-name small{font-size:10px}
+.figma-nav{padding:18px 13px 12px!important;gap:4px!important}
+.figma-nav-caption{padding:9px 12px 7px;font-size:11px;letter-spacing:.01em}
+.figma-nav-caption-spaced{margin-top:14px}
+.figma-nav .nav-link{min-height:42px;gap:11px;padding:8px 11px;margin:1px 0;border-radius:11px;font-size:13px;font-weight:500;color:#5e4a37}
+.figma-nav .nav-link:hover{background:#f5eee4;color:#68482f}
+.figma-nav .nav-link.active{background:#eee1cf;color:#68482f;font-weight:700}
+.figma-nav .nav-icon-box{width:21px;height:21px;flex:0 0 21px;font-size:16px}
+.figma-sidebar-profile{gap:11px;padding:14px 17px 11px}
+.figma-profile-avatar{width:36px;height:36px;flex-basis:36px;font-size:15px}
+.figma-profile-copy strong{font-size:12px}
+.figma-profile-copy small{font-size:10px}
+.figma-sidebar-note{margin:8px 14px 10px;padding:13px 12px;border-radius:13px}
+.figma-sidebar-note strong{font-size:11px}
+.figma-sidebar-note span{font-size:10px;line-height:1.8}
+.figma-sidebar .sidebar-footer{padding:5px 14px 9px}
+.figma-sidebar .sidebar-footer .btn-secondary{min-height:36px;padding:7px 10px;font-size:11px;border-radius:10px}
+.figma-sidebar-copy{font-size:9px;padding:5px 0 12px}
+.figma-main{background:#f4eee4}
+.figma-topbar{height:68px;min-height:68px;padding:0 38px!important;gap:22px;background:#fffdf8!important}
+.figma-breadcrumb{font-size:12px;color:#887762}
+.figma-search{flex-basis:340px;max-width:340px}
+.figma-search .search-input{height:40px;min-height:40px;padding:0 40px 0 16px;border-radius:13px;background:#faf7f1;font-size:12px}
+.figma-search-symbol{right:14px;top:9px;font-size:19px}
+.figma-topbar-actions{gap:11px}
+.figma-topbar-actions .notification-bell,.figma-theme-toggle{width:38px;min-width:38px;height:38px;background:#faf7f1}
+.figma-topbar-actions .bell-icon{width:18px;height:18px}
+.figma-theme-toggle{font-size:17px}
+.figma-topbar-user{gap:10px}
+.figma-topbar-greeting{font-size:11px}
+.figma-topbar-user .user-avatar-circle{width:38px;height:38px;min-width:38px;font-size:13px}
+.figma-topbar-user .role-badge{font-size:10px;padding:4px 9px;border-radius:9px}
+.figma-page-body{max-width:1540px;margin:0 auto;padding:30px 42px 42px!important}
+.figma-hero{min-height:190px;padding:32px 38px;border-radius:21px;background:linear-gradient(112deg,#503a2a 0%,#6b4b32 62%,#806044 100%);box-shadow:0 12px 28px rgba(73,49,29,.09)}
+.figma-hero-content{max-width:760px}
+.figma-hero-label{padding:6px 13px;background:rgba(255,255,255,.12);font-size:11px}
+.figma-hero h1{max-width:720px;margin:13px 0 8px;font-size:clamp(23px,2.1vw,31px);line-height:1.55;letter-spacing:0}
+.figma-hero p{font-size:13px;line-height:1.9;color:#f0e5d8}
+.figma-hero-action{margin-top:15px;padding:10px 19px;border-radius:11px;font-size:12px}
+.figma-hero-welcome{margin-top:10px;font-size:10px}
+.figma-hero-decoration{width:270px;height:270px;left:5%;top:-42px;opacity:.35}
+.figma-hero-decoration i{inset:42px}
+.figma-stats-grid{gap:16px;margin:21px 0 24px}
+.figma-stat-card{min-height:112px;padding:17px 21px;border:1px solid #eee5d9;border-radius:17px;box-shadow:0 5px 18px rgba(68,47,28,.035)}
+.figma-stat-card>strong{font-size:27px;line-height:1.25}
+.figma-stat-card>b{margin-top:7px;font-size:13px}
+.figma-stat-card>small{margin-top:5px;font-size:10px}
+.figma-stat-accent{right:20px;top:19px;width:4px;height:31px}
+.figma-stat-icon{width:27px;height:27px;left:18px;bottom:17px;opacity:.18}
+.figma-dashboard-grid{grid-template-columns:minmax(0,1.42fr) minmax(300px,.78fr);gap:20px}
+.figma-panel{padding:22px;border:1px solid #eee5d9;border-radius:19px;box-shadow:0 5px 18px rgba(68,47,28,.025)}
+.figma-courses-panel{min-height:390px}
+.figma-panel-heading{gap:16px;margin-bottom:19px}
+.figma-panel-heading h2{font-size:18px}
+.figma-panel-heading p{margin-top:6px;font-size:11px;line-height:1.8}
+.figma-panel-pill{padding:8px 14px;border-radius:10px;font-size:11px}
+.figma-courses-grid{gap:12px}
+.figma-course-card{min-height:83px;gap:13px;padding:13px 15px;border:1px solid #f0e9df;border-radius:14px;background:#fffefa}
+.figma-course-number{width:42px;height:42px;flex-basis:42px;border-radius:12px;font-size:11px}
+.figma-course-copy{gap:4px}
+.figma-course-copy strong{font-size:12px;line-height:1.55}
+.figma-course-copy small{font-size:10px}
+.figma-course-copy em{font-size:9px;margin-top:3px}
+.figma-course-arrow{font-size:14px}
+.figma-side-panels{gap:17px}
+.figma-week-panel,.figma-updates-panel{padding:20px}
+.figma-panel-symbol{font-size:21px}
+.figma-week-row,.figma-update-row{gap:12px;padding:12px 0}
+.figma-week-row strong,.figma-update-row strong{font-size:11px}
+.figma-week-row small,.figma-update-row small{font-size:9px;line-height:1.7}
+.figma-week-dot{width:8px;height:8px;flex-basis:8px}
+.figma-update-icon{width:29px;height:29px;flex-basis:29px;border-radius:9px;font-size:14px}
+.figma-home-footer{padding:28px 0 8px;font-size:10px}
+.figma-group-notice{padding:18px 22px!important;border-radius:15px}
+.figma-group-notice p{font-size:13px;line-height:1.8}
+.figma-group-notice .btn-primary{width:auto;min-width:130px;padding:9px 15px;font-size:12px}
+.role-badge.admin{background:#eee5d8;color:#68482f;border-color:#e0d1bd}
+.role-badge.uploader{background:#f3eadb;color:#765735;border-color:#e8d9c2}
+
+/* Keep legacy inner pages visually consistent with the new shell. */
+.figma-page-body .page-banner{padding:25px 28px;border-radius:17px;background:linear-gradient(110deg,#68482f,#92704e);box-shadow:0 8px 22px rgba(73,49,29,.07)}
+.figma-page-body .page-banner h2{font-size:23px;line-height:1.5}
+.figma-page-body .page-banner p{font-size:13px;line-height:1.9}
+.figma-page-body .content-card{padding:21px;border-radius:16px;border-color:#e9dfd2;background:#fffdf8;box-shadow:0 4px 16px rgba(68,47,28,.035)}
+.figma-page-body .btn-primary,.figma-page-body .btn-secondary,.figma-page-body .btn-danger{border-radius:11px}
+.figma-page-body input,.figma-page-body select,.figma-page-body textarea{border-radius:10px}
+.figma-page-body table{font-size:13px}
+.figma-page-body th,.figma-page-body td{padding:11px 13px}
+.figma-page-body h2{line-height:1.5}
+.figma-page-body p{line-height:1.9}
+
+@media(max-width:1100px){
+ .app-container.figma-app-shell{grid-template-columns:minmax(0,1fr) 225px}
+ .figma-sidebar{width:225px!important}
+ .figma-page-body{padding:24px 25px 32px!important}
+ .figma-topbar{padding:0 25px!important}
+ .figma-dashboard-grid{grid-template-columns:minmax(0,1.2fr) minmax(260px,.8fr);gap:14px}
+ .figma-course-card{min-height:78px}
+}
+@media(max-width:850px) and (min-width:761px){
+ .figma-sidebar{width:205px!important}
+ .app-container.figma-app-shell{grid-template-columns:minmax(0,1fr) 205px}
+ .figma-page-body{padding:20px 18px 28px!important}
+ .figma-topbar{padding:0 18px!important}
+ .figma-breadcrumb{display:none}
+ .figma-dashboard-grid{grid-template-columns:1fr}
+ .figma-side-panels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .figma-nav .nav-link{font-size:12px}
+}
+@media(max-width:760px){
+ .app-container.figma-app-shell{display:block!important}
+ .figma-sidebar{width:290px!important;transform:translateX(105%);background:#fffdf8!important}
+ .figma-sidebar.open{transform:translateX(0)}
+ .figma-nav .nav-link{min-height:43px!important;font-size:13px!important}
+ .figma-nav-caption{font-size:11px!important}
+ .figma-topbar{height:62px;min-height:62px;padding:0 12px!important;gap:9px}
+ .figma-search .search-input{height:38px;min-height:38px;font-size:11px}
+ .figma-topbar-actions{gap:6px}
+ .figma-topbar-actions .notification-bell,.figma-theme-toggle{width:34px;min-width:34px;height:34px}
+ .figma-topbar-user .user-avatar-circle{width:34px;height:34px;min-width:34px}
+ .figma-page-body{padding:16px 13px 26px!important}
+ .figma-hero{min-height:190px;padding:22px 20px;border-radius:17px}
+ .figma-hero h1{font-size:21px;line-height:1.65}
+ .figma-hero p{font-size:11px}
+ .figma-hero-label{font-size:10px}
+ .figma-hero-action{font-size:11px}
+ .figma-stats-grid{gap:9px;margin:13px 0 16px}
+ .figma-stat-card{min-height:96px;padding:13px 14px;border-radius:14px}
+ .figma-stat-card>strong{font-size:23px}
+ .figma-stat-card>b{font-size:11px}
+ .figma-stat-card>small{font-size:9px}
+ .figma-dashboard-grid{grid-template-columns:1fr;gap:13px}
+ .figma-panel{padding:16px;border-radius:16px}
+ .figma-panel-heading h2{font-size:16px}
+ .figma-panel-heading p{font-size:10px}
+ .figma-courses-grid{grid-template-columns:1fr;gap:9px}
+ .figma-course-card{min-height:76px;padding:12px}
+ .figma-course-copy strong{font-size:12px}
+ .figma-course-copy small{font-size:10px}
+ .figma-course-copy em{font-size:9px}
+ .figma-side-panels{display:grid;grid-template-columns:1fr;gap:12px}
+ .figma-week-row,.figma-update-row{padding:11px 0}
+ .figma-week-row strong,.figma-update-row strong{font-size:11px}
+ .figma-week-row small,.figma-update-row small{font-size:9px}
+ .figma-page-body .page-banner{padding:20px}
+ .figma-page-body .page-banner h2{font-size:19px}
+ .figma-page-body .content-card{padding:15px}
+}
+@media(min-width:761px) and (max-width:1250px){
+ .figma-page-body{padding-inline:24px!important}
+ .figma-hero h1{font-size:24px}
+}
