@@ -873,102 +873,67 @@ function renderApp() {
   const isAdmin = state.role === "admin";
   const isUploader = state.role === "uploader";
 
-  // Build shell
+  // Build shell — Figma dashboard structure, preserving existing event hooks and routes.
   rootEl.innerHTML = `
-    <div class="app-container">
-      <!-- Backdrop for mobile -->
+    <div class="app-container figma-app-shell">
       <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
-
-      <!-- Right Sidebar -->
-      <aside id="appSidebar" class="app-sidebar">
-        <div class="sidebar-header">
-          <span class="sidebar-cap-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 9 12 4l10 5-10 5L2 9Z"/><path d="M6 11v5c3.8 3 8.2 3 12 0v-5M22 9v6"/></svg></span>
-          <span class="sidebar-brand-name"><bdi>info cc 404</bdi><small>منصة طلبة الإعلام الآلي</small></span>
+      <aside id="appSidebar" class="app-sidebar figma-sidebar">
+        <div class="sidebar-header figma-brand">
+          <span class="sidebar-cap-icon" aria-hidden="true"><bdi>404</bdi></span>
+          <span class="sidebar-brand-name"><bdi>info cc 404</bdi><small>مساحة طلبة الإعلام الآلي</small></span>
         </div>
-
-        <nav class="sidebar-nav" aria-label="القائمة الرئيسية">
-          <details class="nav-section">
-            <summary class="nav-section-toggle"><span>الرئيسية والملفات</span><svg class="nav-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
-            <a href="#/" class="nav-link ${hash === "#/" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7h-6v7H4a1 1 0 0 1-1-1z"/></svg><span>الرئيسية</span></a>
-            <a href="#/groupes" class="nav-link ${hash.startsWith("#/groupe") ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v15H4zM8 3v4M16 3v4M4 9h16M8 13h3M8 16h7"/></svg><span>المواد والأفواج</span></a>
-            <a href="#/search" class="nav-link ${hash === "#/search" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><span>ملفاتي والبحث</span></a>
-            <a href="#/favorites" class="nav-link ${hash === "#/favorites" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v14H4zM8 3h8v3H8zM8 10h8M8 14h6"/></svg><span>ملفاتي المفضلة</span></a>
-          </details>
-
-          <details class="nav-section">
-            <summary class="nav-section-toggle"><span>التعلم والتقييم</span><svg class="nav-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
-            <a href="#/exams" class="nav-link ${hash === "#/exams" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7"/></svg><span>أرشيف الامتحانات</span></a>
-            <a href="#/quizzes" class="nav-link ${hash === "#/quizzes" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="m8 9 2 2 4-4M8 16h8"/></svg><span>اختبارات QCM</span></a>
-            <a href="#/polls" class="nav-link ${hash === "#/polls" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 9h8M8 13h3M14 13h2M8 17h8"/></svg><span>التصويت والاستطلاعات</span></a>
-            <a href="#/discussions" class="nav-link ${hash === "#/discussions" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v12H8l-4 3zM8 9h8M8 13h5"/></svg><span>الأسئلة والأجوبة</span></a>
-            <a href="#/notes" class="nav-link ${hash === "#/notes" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5zM8 8h8M8 12h8M8 16h5"/></svg><span>ملاحظاتي الدراسية</span></a>
-            <a href="#/study-plan" class="nav-link ${hash === "#/study-plan" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18M8 13h3M8 17h7"/></svg><span>مخطط المراجعة</span></a>
-            <a href="#/progress" class="nav-link ${hash === "#/progress" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h17M8 15v-4M13 15V7M18 15V3"/></svg><span>تقدمي الدراسي</span></a>
-          </details>
-
-          <details class="nav-section">
-            <summary class="nav-section-toggle"><span>الحياة الجامعية والتواصل</span><svg class="nav-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
-            <a href="#/teachers" class="nav-link ${hash.startsWith("#/teacher") ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 20v-1.4A4.6 4.6 0 0 1 8.1 14h1.8a4.6 4.6 0 0 1 4.6 4.6V20zM16 5.5a3 3 0 0 1 0 5.8M17 14a4.3 4.3 0 0 1 3.5 4.2V20h-3"/></svg><span>الأساتذة</span></a>
-            <a href="#/horaire" class="nav-link ${hash === "#/horaire" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 9h16M8 13h2M13 13h3M8 16h2"/></svg><span>الجدول الزمني</span></a>
-            <a href="#/announcements" class="nav-link ${hash === "#/announcements" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l9 4V6l-9 4zM8 14l2 6h3l-2-5M19 9a4 4 0 0 1 0 6"/></svg><span>الإعلانات</span></a>
-            <a href="#/messages" class="nav-link ${hash === "#/messages" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v12H8l-4 3zM8 9h8M8 13h5"/></svg><span>الشات</span></a>
-            <a href="#/notifications" class="nav-link ${hash === "#/notifications" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span>الإشعارات</span><span class="nav-notification-dot" id="sidebarNotificationUnread" hidden></span></a>
-            <a href="#/support" class="nav-link ${hash === "#/support" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg><span>الإبلاغ عن مشكلة</span></a>
-          </details>
-
-          ${(isOwner || isAdmin || isUploader) ? `<details class="nav-section"><summary class="nav-section-toggle"><span>إدارة المحتوى</span><svg class="nav-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
-            <a href="#/upload" class="nav-link ${hash === "#/upload" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m-5 5 5-5 5 5M4 15v5h16v-5"/></svg><span>رفع الملفات</span></a>
-            ${(isOwner || isAdmin) ? `<a href="#/admin" class="nav-link ${hash === "#/admin" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM8 8h8M8 12h8M8 16h5"/></svg><span>إدارة الملفات</span></a>` : ""}
-            ${isOwner ? `<a href="#/owner-users" class="nav-link ${hash === "#/owner-users" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20v-1a6 6 0 0 1 12 0v1M17 8h4M19 6v4"/></svg><span>إدارة المستخدمين</span></a><a href="#/owner-insights" class="nav-link ${hash === "#/owner-insights" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h17M8 15v-4M13 15V7M18 15V3"/></svg><span>إحصائيات المالك</span></a>` : ""}
-          </details>` : ""}
-          <details class="nav-section nav-section-account">
-            <summary class="nav-section-toggle"><span>الحساب</span><svg class="nav-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
-            <a href="#/preferences" class="nav-link ${hash === "#/preferences" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/><circle cx="12" cy="12" r="4"/></svg><span>تخصيص الواجهة</span></a>
-            <a href="#/compte" class="nav-link ${hash === "#/compte" ? "active" : ""}"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>حسابي</span></a>
-          </details>
+        <nav class="sidebar-nav figma-nav" aria-label="القائمة الرئيسية">
+          <div class="figma-nav-caption">مساحة التعلم</div>
+          <a href="#/" class="nav-link ${hash === "#/" ? "active" : ""}"><span class="nav-icon-box">⌂</span><span>الرئيسية</span></a>
+          <a href="#/search" class="nav-link ${hash === "#/search" ? "active" : ""}"><span class="nav-icon-box">▤</span><span>مكتبتي وملفاتي</span></a>
+          <a href="#/groupes" class="nav-link ${hash.startsWith("#/groupe") || hash === "#/groupes" ? "active" : ""}"><span class="nav-icon-box">▣</span><span>الدروس والمحاضرات</span></a>
+          <a href="#/teachers" class="nav-link ${hash.startsWith("#/teacher") ? "active" : ""}"><span class="nav-icon-box">♧</span><span>الأساتذة</span></a>
+          <a href="#/horaire" class="nav-link ${hash === "#/horaire" ? "active" : ""}"><span class="nav-icon-box">▦</span><span>الجدول الدراسي</span></a>
+          <a href="#/exams" class="nav-link ${hash === "#/exams" ? "active" : ""}"><span class="nav-icon-box">▧</span><span>أرشيف الامتحانات</span></a>
+          <a href="#/quizzes" class="nav-link ${hash === "#/quizzes" ? "active" : ""}"><span class="nav-icon-box">✓</span><span>اختبارات QCM</span></a>
+          <a href="#/notes" class="nav-link ${hash === "#/notes" ? "active" : ""}"><span class="nav-icon-box">✎</span><span>ملاحظاتي الدراسية</span></a>
+          <a href="#/study-plan" class="nav-link ${hash === "#/study-plan" ? "active" : ""}"><span class="nav-icon-box">◷</span><span>مخطط المراجعة</span></a>
+          <a href="#/discussions" class="nav-link ${hash === "#/discussions" ? "active" : ""}"><span class="nav-icon-box">◎</span><span>مساحة الأسئلة</span></a>
+          <a href="#/announcements" class="nav-link ${hash === "#/announcements" ? "active" : ""}"><span class="nav-icon-box">♢</span><span>الإعلانات</span></a>
+          <a href="#/notifications" class="nav-link ${hash === "#/notifications" ? "active" : ""}"><span class="nav-icon-box">♧</span><span>الإشعارات</span><span class="nav-notification-dot" id="sidebarNotificationUnread" hidden></span></a>
+          <a href="#/messages" class="nav-link ${hash === "#/messages" ? "active" : ""}"><span class="nav-icon-box">☏</span><span>المراسلات والشات</span></a>
+          ${(isOwner || isAdmin || isUploader) ? `
+            <div class="figma-nav-caption figma-nav-caption-spaced">إدارة المنصة</div>
+            <a href="#/upload" class="nav-link ${hash === "#/upload" ? "active" : ""}"><span class="nav-icon-box">＋</span><span>رفع الملفات</span></a>
+            ${(isOwner || isAdmin) ? `<a href="#/admin" class="nav-link ${hash === "#/admin" ? "active" : ""}"><span class="nav-icon-box">⚙</span><span>إدارة الملفات</span></a>` : ""}
+            ${isOwner ? `<a href="#/owner-users" class="nav-link ${hash === "#/owner-users" ? "active" : ""}"><span class="nav-icon-box">♙</span><span>إدارة المستخدمين</span></a><a href="#/owner-insights" class="nav-link ${hash === "#/owner-insights" ? "active" : ""}"><span class="nav-icon-box">▥</span><span>إحصائيات المالك</span></a>` : ""}
+          ` : ""}
+          <div class="figma-nav-caption figma-nav-caption-spaced">حسابك</div>
+          <a href="#/compte" class="nav-link ${hash === "#/compte" ? "active" : ""}"><span class="nav-icon-box">♙</span><span>حسابي</span></a>
+          <a href="#/preferences" class="nav-link ${hash === "#/preferences" ? "active" : ""}"><span class="nav-icon-box">⚙</span><span>تفضيلات الواجهة</span></a>
+          <a href="#/support" class="nav-link ${hash === "#/support" ? "active" : ""}"><span class="nav-icon-box">?</span><span>الإبلاغ عن مشكلة</span></a>
         </nav>
-
-        <div class="sidebar-footer">
-          <button type="button" class="btn-secondary" id="sidebarLogoutBtn" style="width: 100%;">
-            تسجيل الخروج
-          </button>
+        <div class="figma-sidebar-profile">
+          <div class="figma-profile-avatar" id="sidebarProfileAvatar">${escapeHtml((state.studentDisplayName || state.user.email)?.[0]?.toUpperCase() || "ط")}</div>
+          <div class="figma-profile-copy"><strong>${escapeHtml(state.studentDisplayName || state.user.email?.split("@")[0] || "مستخدم")}</strong><small>${state.role === "owner" ? "المالك · جميع الأفواج" : state.role === "admin" ? "مشرف المنصة" : state.role === "uploader" ? `رئيس القسم · G${state.uploaderGroup || "—"}` : (state.studentGroup ? `طالب · G${state.studentGroup}` : "مساحة الطالب")}</small></div>
         </div>
+        <div class="figma-sidebar-note"><strong>مساحة هادئة للدراسة</strong><span>ملفاتك وملاحظاتك وخطتك، كلها في مكان واحد.</span></div>
+        <div class="sidebar-footer"><button type="button" class="btn-secondary" id="sidebarLogoutBtn">تسجيل الخروج</button></div>
+        <div class="figma-sidebar-copy">INFO CC 404 · ${new Date().getFullYear()}</div>
       </aside>
-
-      <!-- Main Area -->
-      <div class="app-main">
-        <!-- Top Bar -->
-        <header class="app-topbar">
-          <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-            <button type="button" id="mobileMenuBtn" class="mobile-menu-btn" aria-label="القائمة">
-              القائمة
-            </button>
-
-            <!-- Search box -->
-            <div class="search-box-wrapper">
-              <input type="text" id="topSearchInput" class="search-input" placeholder="ابحث في عناوين الملفات المتاحة...">
-              <div id="searchResultsDropdown" class="search-results-dropdown"></div>
-            </div>
+      <div class="app-main figma-main">
+        <header class="app-topbar figma-topbar">
+          <div class="figma-breadcrumb">مساحة الطالب <span>/</span> <strong>${hash === "#/" ? "الرئيسية" : "مساحة التعلم"}</strong></div>
+          <button type="button" id="mobileMenuBtn" class="mobile-menu-btn" aria-label="فتح القائمة">☰</button>
+          <div class="search-box-wrapper figma-search">
+            <input type="text" id="topSearchInput" class="search-input" placeholder="ابحث عن مادة، ملف، أو أستاذ...">
+            <span class="figma-search-symbol">⌕</span>
+            <div id="searchResultsDropdown" class="search-results-dropdown"></div>
           </div>
-
-          <div class="topbar-right-info">
-            <button type="button" id="themeToggleBtn" class="btn-secondary" aria-label="تبديل الوضع الليلي" title="تبديل الوضع الليلي" style="width:auto;padding:8px 11px;">الوضع الليلي</button>
-            <button type="button" id="notificationBellBtn" class="notification-bell" aria-label="الإشعارات" title="الإشعارات" style="position:relative;border:1px solid #e2d2bf;background:#fffaf3;color:#684b32;border-radius:12px;padding:9px 12px;cursor:pointer;font:inherit;min-width:44px;">
+          <div class="topbar-right-info figma-topbar-actions">
+            <button type="button" id="notificationBellBtn" class="notification-bell" aria-label="الإشعارات" title="الإشعارات">
               <svg class="bell-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span id="notificationUnreadCount" style="display:none;position:absolute;top:-6px;left:-6px;background:#a33b2f;color:white;border-radius:20px;min-width:18px;height:18px;padding:0 4px;font-size:11px;line-height:18px;text-align:center;"></span>
             </button>
-            <span class="role-badge ${state.role}">
-              ${getRoleBadgeText(state.role, state.uploaderGroup)}
-            </span>
-            <div class="user-avatar-circle" id="topbarAvatar" title="${escapeHtml(state.studentDisplayName || state.user.email)}">
-              ${escapeHtml((state.studentDisplayName || state.user.email)?.[0]?.toUpperCase() || "U")}
-            </div>
+            <button type="button" id="themeToggleBtn" class="figma-theme-toggle" aria-label="تبديل الوضع الليلي" title="تبديل الوضع الليلي">◐</button>
+            <div class="figma-topbar-user"><span class="figma-topbar-greeting">مرحباً بعودتك</span><span class="user-avatar-circle" id="topbarAvatar" title="${escapeHtml(state.studentDisplayName || state.user.email)}">${escapeHtml((state.studentDisplayName || state.user.email)?.[0]?.toUpperCase() || "U")}</span><span class="role-badge ${state.role}">${getRoleBadgeText(state.role, state.uploaderGroup)}</span></div>
           </div>
         </header>
-
-        <!-- Route Content Area -->
-        <main class="page-body" id="pageContent">
-          <!-- Injected Route View -->
-        </main>
+        <main class="page-body figma-page-body" id="pageContent"></main>
       </div>
     </div>
   `;
