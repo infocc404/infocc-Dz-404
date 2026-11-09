@@ -883,40 +883,56 @@ function renderApp() {
           <span class="sidebar-brand-name"><bdi>info cc 404</bdi><small>مساحة طلبة الإعلام الآلي</small></span>
         </div>
         <nav class="sidebar-nav figma-nav" aria-label="القائمة الرئيسية">
-          <div class="figma-nav-caption">مساحة التعلم</div>
+          <div class="figma-nav-caption">الرئيسية</div>
           <a href="#/" class="nav-link ${hash === "#/" ? "active" : ""}"><span class="nav-icon-box">⌂</span><span>الرئيسية</span></a>
-          <a href="#/search" class="nav-link ${hash === "#/search" ? "active" : ""}"><span class="nav-icon-box">▤</span><span>مكتبتي وملفاتي</span></a>
-          <a href="#/favorites" class="nav-link ${hash === "#/favorites" ? "active" : ""}"><span class="nav-icon-box">♡</span><span>ملفاتي المفضلة</span></a>
-          <details class="figma-nav-accordion" ${(hash.startsWith("#/groupe") || hash.startsWith("#/teacher") || hash === "#/horaire" || hash === "#/exams") ? "open" : ""}>
-            <summary class="figma-nav-group-title ${(hash.startsWith("#/groupe") || hash.startsWith("#/teacher") || hash === "#/horaire" || hash === "#/exams") ? "active" : ""}">
-              <span class="nav-icon-box">▣</span><span>المجموعات</span><span class="figma-nav-chevron" aria-hidden="true">⌄</span>
-            </summary>
+          <details class="nav-section figma-nav-accordion" ${(["#/search","#/favorites","#/groupes","#/teachers","#/horaire","#/exams","#/quizzes","#/notes","#/study-plan","#/progress"].some(r=>hash===r||hash.startsWith(r+"/")) || hash.startsWith("#/teacher/")) ? "open" : ""}>
+            <summary class="figma-nav-group-title"><span class="nav-icon-box">▣</span><span>الدراسة والموارد</span><span class="figma-nav-chevron">⌄</span></summary>
             <div class="figma-nav-submenu">
-              <a href="#/groupes" class="nav-link ${hash.startsWith("#/groupe") ? "active" : ""}"><span class="nav-icon-box">▤</span><span>الدروس والمحاضرات</span></a>
-              <a href="#/teachers" class="nav-link ${hash.startsWith("#/teacher") ? "active" : ""}"><span class="nav-icon-box">♧</span><span>دليل الأساتذة</span></a>
-              <a href="#/horaire" class="nav-link ${hash === "#/horaire" ? "active" : ""}"><span class="nav-icon-box">▦</span><span>الجدول الدراسي</span></a>
-              <a href="#/exams" class="nav-link ${hash === "#/exams" ? "active" : ""}"><span class="nav-icon-box">▧</span><span>أرشيف الامتحانات</span></a>
+              <a href="#/search" class="nav-link ${hash === "#/search" ? "active" : ""}"><span class="nav-icon-box">▤</span><span>مكتبتي وملفاتي</span></a>
+              <a href="#/favorites" class="nav-link ${hash === "#/favorites" ? "active" : ""}"><span class="nav-icon-box">♡</span><span>ملفاتي المفضلة</span></a>
+              <details class="nav-section figma-nav-accordion figma-nav-nested" ${(hash.startsWith("#/groupe")||hash.startsWith("#/teacher")||hash==="#/horaire"||hash==="#/exams")?"open":""}>
+                <summary class="figma-nav-group-title figma-nav-nested-title"><span class="nav-icon-box">▣</span><span>المجموعات</span><span class="figma-nav-chevron">⌄</span></summary>
+                <div class="figma-nav-submenu">
+                  <a href="#/groupes" class="nav-link ${hash.startsWith("#/groupe") ? "active" : ""}"><span class="nav-icon-box">▤</span><span>الدروس والمحاضرات</span></a>
+                  <a href="#/teachers" class="nav-link ${hash.startsWith("#/teacher") ? "active" : ""}"><span class="nav-icon-box">♧</span><span>دليل الأساتذة</span></a>
+                  <a href="#/horaire" class="nav-link ${hash === "#/horaire" ? "active" : ""}"><span class="nav-icon-box">▦</span><span>الجدول الدراسي</span></a>
+                  <a href="#/exams" class="nav-link ${hash === "#/exams" ? "active" : ""}"><span class="nav-icon-box">▧</span><span>أرشيف الامتحانات</span></a>
+                </div>
+              </details>
+              <a href="#/quizzes" class="nav-link ${hash === "#/quizzes" ? "active" : ""}"><span class="nav-icon-box">✓</span><span>اختبارات QCM</span></a>
+              <a href="#/notes" class="nav-link ${hash === "#/notes" ? "active" : ""}"><span class="nav-icon-box">✎</span><span>ملاحظاتي الدراسية</span></a>
+              <a href="#/study-plan" class="nav-link ${hash === "#/study-plan" ? "active" : ""}"><span class="nav-icon-box">◷</span><span>مخطط المراجعة</span></a>
+              <a href="#/progress" class="nav-link ${hash === "#/progress" ? "active" : ""}"><span class="nav-icon-box">▤</span><span>تقدمي الدراسي</span></a>
             </div>
           </details>
-          <a href="#/quizzes" class="nav-link ${hash === "#/quizzes" ? "active" : ""}"><span class="nav-icon-box">✓</span><span>اختبارات QCM</span></a>
-          <a href="#/polls" class="nav-link ${hash === "#/polls" ? "active" : ""}"><span class="nav-icon-box">▥</span><span>التصويت والاستطلاعات</span></a>
-          <a href="#/notes" class="nav-link ${hash === "#/notes" ? "active" : ""}"><span class="nav-icon-box">✎</span><span>ملاحظاتي الدراسية</span></a>
-          <a href="#/study-plan" class="nav-link ${hash === "#/study-plan" ? "active" : ""}"><span class="nav-icon-box">◷</span><span>مخطط المراجعة</span></a>
-          <a href="#/progress" class="nav-link ${hash === "#/progress" ? "active" : ""}"><span class="nav-icon-box">▤</span><span>تقدمي الدراسي</span></a>
-          <a href="#/discussions" class="nav-link ${hash === "#/discussions" ? "active" : ""}"><span class="nav-icon-box">◎</span><span>مساحة الأسئلة</span></a>
-          <a href="#/announcements" class="nav-link ${hash === "#/announcements" ? "active" : ""}"><span class="nav-icon-box">♢</span><span>الإعلانات</span></a>
-          <a href="#/notifications" class="nav-link ${hash === "#/notifications" ? "active" : ""}"><span class="nav-icon-box">♧</span><span>الإشعارات</span><span class="nav-notification-dot" id="sidebarNotificationUnread" hidden></span></a>
-          <a href="#/messages" class="nav-link ${hash === "#/messages" ? "active" : ""}"><span class="nav-icon-box">☏</span><span>المراسلات والشات</span></a>
+          <details class="nav-section figma-nav-accordion" ${(["#/discussions","#/polls","#/announcements","#/notifications","#/messages"].some(r=>hash===r||hash.startsWith(r+"/"))?"open":"")}>
+            <summary class="figma-nav-group-title"><span class="nav-icon-box">◎</span><span>التواصل والإعلانات</span><span class="figma-nav-chevron">⌄</span></summary>
+            <div class="figma-nav-submenu">
+              <a href="#/discussions" class="nav-link ${hash === "#/discussions" ? "active" : ""}"><span class="nav-icon-box">◎</span><span>مساحة الأسئلة</span></a>
+              <a href="#/polls" class="nav-link ${hash === "#/polls" ? "active" : ""}"><span class="nav-icon-box">▥</span><span>التصويت والاستطلاعات</span></a>
+              <a href="#/announcements" class="nav-link ${hash === "#/announcements" ? "active" : ""}"><span class="nav-icon-box">♢</span><span>الإعلانات</span></a>
+              <a href="#/notifications" class="nav-link ${hash === "#/notifications" ? "active" : ""}"><span class="nav-icon-box">♧</span><span>الإشعارات</span><span class="nav-notification-dot" id="sidebarNotificationUnread" hidden></span></a>
+              <a href="#/messages" class="nav-link ${hash === "#/messages" ? "active" : ""}"><span class="nav-icon-box">☏</span><span>المراسلات والشات</span></a>
+            </div>
+          </details>
           ${(isOwner || isAdmin || isUploader) ? `
-            <div class="figma-nav-caption figma-nav-caption-spaced">إدارة المنصة</div>
-            <a href="#/upload" class="nav-link ${hash === "#/upload" ? "active" : ""}"><span class="nav-icon-box">＋</span><span>رفع الملفات</span></a>
-            ${(isOwner || isAdmin) ? `<a href="#/admin" class="nav-link ${hash === "#/admin" ? "active" : ""}"><span class="nav-icon-box">⚙</span><span>إدارة الملفات</span></a>` : ""}
-            ${isOwner ? `<a href="#/owner-users" class="nav-link ${hash === "#/owner-users" ? "active" : ""}"><span class="nav-icon-box">♙</span><span>إدارة المستخدمين</span></a><a href="#/owner-insights" class="nav-link ${hash === "#/owner-insights" ? "active" : ""}"><span class="nav-icon-box">▥</span><span>إحصائيات المالك</span></a>` : ""}
+            <details class="nav-section figma-nav-accordion" ${(["#/upload","#/admin","#/owner-users","#/owner-insights"].some(r=>hash===r||hash.startsWith(r+"/"))?"open":"")}>
+              <summary class="figma-nav-group-title"><span class="nav-icon-box">⚙</span><span>إدارة المنصة</span><span class="figma-nav-chevron">⌄</span></summary>
+              <div class="figma-nav-submenu">
+                <a href="#/upload" class="nav-link ${hash === "#/upload" ? "active" : ""}"><span class="nav-icon-box">＋</span><span>رفع الملفات</span></a>
+                ${(isOwner || isAdmin) ? `<a href="#/admin" class="nav-link ${hash === "#/admin" ? "active" : ""}"><span class="nav-icon-box">⚙</span><span>إدارة الملفات</span></a>` : ""}
+                ${isOwner ? `<a href="#/owner-users" class="nav-link ${hash === "#/owner-users" ? "active" : ""}"><span class="nav-icon-box">♙</span><span>إدارة المستخدمين</span></a><a href="#/owner-insights" class="nav-link ${hash === "#/owner-insights" ? "active" : ""}"><span class="nav-icon-box">▥</span><span>إحصائيات المالك</span></a>` : ""}
+              </div>
+            </details>
           ` : ""}
-          <div class="figma-nav-caption figma-nav-caption-spaced">حسابك</div>
-          <a href="#/compte" class="nav-link ${hash === "#/compte" ? "active" : ""}"><span class="nav-icon-box">♙</span><span>حسابي</span></a>
-          <a href="#/preferences" class="nav-link ${hash === "#/preferences" ? "active" : ""}"><span class="nav-icon-box">⚙</span><span>تفضيلات الواجهة</span></a>
-          <a href="#/support" class="nav-link ${hash === "#/support" ? "active" : ""}"><span class="nav-icon-box">?</span><span>الإبلاغ عن مشكلة</span></a>
+          <details class="nav-section figma-nav-accordion" ${(["#/compte","#/preferences","#/support"].some(r=>hash===r||hash.startsWith(r+"/"))?"open":"")}>
+            <summary class="figma-nav-group-title"><span class="nav-icon-box">♙</span><span>الحساب والمساعدة</span><span class="figma-nav-chevron">⌄</span></summary>
+            <div class="figma-nav-submenu">
+              <a href="#/compte" class="nav-link ${hash === "#/compte" ? "active" : ""}"><span class="nav-icon-box">♙</span><span>حسابي</span></a>
+              <a href="#/preferences" class="nav-link ${hash === "#/preferences" ? "active" : ""}"><span class="nav-icon-box">⚙</span><span>تفضيلات الواجهة</span></a>
+              <a href="#/support" class="nav-link ${hash === "#/support" ? "active" : ""}"><span class="nav-icon-box">?</span><span>الإبلاغ عن مشكلة</span></a>
+            </div>
+          </details>
         </nav>
         <div class="figma-sidebar-profile">
           <div class="figma-profile-avatar" id="sidebarProfileAvatar">${escapeHtml((state.studentDisplayName || state.user.email)?.[0]?.toUpperCase() || "ط")}</div>
