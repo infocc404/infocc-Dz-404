@@ -636,7 +636,7 @@ function renderLoggedOut(errorMessage = "", successMessage = "") {
       renderLoggedOut(translateAuthError(error.message));
     } else if (data?.user && !data?.session) {
       // Email confirmation is ON: the user must confirm before logging in.
-      renderLoggedOut("", "تم إنشاء الحساب. افتح رسالة التأكيد في بريدك. بعد الضغط على الرابط ستظهر لك صفحة اختيار اسم المستخدم والفوج، ولن تحتاج إلى تسجيل الدخول مرة أخرى.");
+      renderLoggedOut("", "تم إنشاء الحساب. افتح رسالة التأكيد في بريدك. إذا لم تجدها خلال دقائق، تفقد مجلد Spam / Junk أيضاً. بعد الضغط على الرابط ستظهر لك صفحة اختيار اسم المستخدم والفوج، ولن تحتاج إلى تسجيل الدخول مرة أخرى.");
     }
     // else: a session exists -> the auth listener opens the app by itself.
   };
@@ -657,7 +657,7 @@ function renderLoggedOut(errorMessage = "", successMessage = "") {
     if (error) {
       renderLoggedOut(translateAuthError(error.message));
     } else {
-      renderLoggedOut("", "تم إرسال رابط إعادة التعيين إلى بريدك الإلكتروني.");
+      renderLoggedOut("", "تم إرسال رابط إعادة التعيين إلى بريدك الإلكتروني. إذا لم تجده خلال دقائق، تفقد مجلد Spam / Junk وتأكد من صحة عنوان البريد.");
     }
   };
 
@@ -1780,61 +1780,65 @@ function renderHomeView(page) {
   const availableFiles = Array.isArray(state.filesCache) ? state.filesCache.length : 0;
   const subjects = (Array.isArray(SUBJECTS) ? SUBJECTS : []).slice(0, 7);
   const subjectColors = ["sand", "sage", "honey", "rose", "sage", "sand", "olive"];
-  const subjectIcons = ["01", "02", "03", "04", "05", "06", "07"];
   const subjectCards = subjects.map((subject, index) => `
-    <a class="figma-course-card" href="#/groupes" aria-label="فتح مادة ${escapeHtml(subject.nameEn || subject.nameFr)}">
-      <span class="figma-course-number ${subjectColors[index % subjectColors.length]}">${subjectIcons[index]}</span>
-      <span class="figma-course-copy"><strong>${escapeHtml(subject.nameEn || subject.nameFr || subject.id)}</strong><small>${escapeHtml(subject.nameAr || "")}</small><em>محاضرات <b>·</b> TD <b>·</b> TP</em></span>
-      <span class="figma-course-arrow" aria-hidden="true">↗</span>
+    <a class="cinematic-subject-card" href="#/groupes" aria-label="فتح مادة ${escapeHtml(subject.nameEn || subject.nameFr)}">
+      <span class="cinematic-subject-index">0${index + 1}</span>
+      <span class="cinematic-subject-copy"><strong>${escapeHtml(subject.nameEn || subject.nameFr || subject.id)}</strong><small>${escapeHtml(subject.nameAr || "")}</small></span>
+      <span class="cinematic-subject-arrow" aria-hidden="true">↗</span>
     </a>`).join("");
-  const statIcon = {
-    group: '<svg viewBox="0 0 24 24"><path d="M16 20v-1.5a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4V20M9.5 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM17 4.5a3.5 3.5 0 0 1 0 6.8M17 14.5a4 4 0 0 1 3 3.8V20"/></svg>',
-    book: '<svg viewBox="0 0 24 24"><path d="M4 5.5A3 3 0 0 1 7 3h5v18H7a3 3 0 0 0-3 1zM20 5.5A3 3 0 0 0 17 3h-5v18h5a3 3 0 0 1 3 1z"/></svg>',
-    file: '<svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5M9 13h6M9 17h6"/></svg>',
-    user: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>'
-  };
   page.innerHTML = `
-    <section class="figma-hero">
-      <div class="figma-hero-decoration" aria-hidden="true"><span></span><i></i></div>
-      <div class="figma-hero-content">
-        <span class="figma-hero-label">منصتك الجامعية</span>
-        <h1>كل ما تحتاجه لرحلتك في الإعلام الآلي، في مكان واحد.</h1>
-        <p>تعلّم بتركيز، نظّم ملفاتك، وتابع تقدّمك خطوة بخطوة.</p>
-        <a class="figma-hero-action" href="#/study-plan">ابدأ جلسة المراجعة <span>↗</span></a>
-        <div class="figma-hero-welcome">مرحباً، ${escapeHtml(userLabel)} <span>·</span> ${state.role === "owner" ? "المالك" : state.role === "admin" ? "مشرف المنصة" : state.role === "uploader" ? "رئيس القسم" : (sg ? `الفوج G${sg}` : "مساحة الطالب")}</div>
+    <section class="cinematic-hero" aria-label="مرحباً بك في info cc 404">
+      <div class="cinematic-hero-image" aria-hidden="true"></div>
+      <div class="cinematic-hero-shade" aria-hidden="true"></div>
+      <div class="cinematic-hero-content">
+        <span class="cinematic-eyebrow"><i></i> INFO CC 404 · YOUR ACADEMIC SPACE</span>
+        <h1>مساحة تصنع<br><em>مستقبلك العلمي.</em></h1>
+        <p>كل ما تحتاجه في رحلتك في الإعلام الآلي، من الدروس والملفات إلى التواصل والتنظيم، في مكان واحد.</p>
+        <div class="cinematic-hero-actions">
+          <a class="cinematic-primary-action" href="#/groupes">اكتشف المواد <span>↗</span></a>
+          <a class="cinematic-quiet-action" href="#/search">تصفّح مكتبتي</a>
+        </div>
+        <div class="cinematic-welcome">مرحباً، ${escapeHtml(userLabel)} <span>·</span> ${state.role === "owner" ? "المالك · تحكم كامل" : state.role === "admin" ? "مشرف المنصة" : state.role === "uploader" ? "رئيس القسم" : (sg ? `الفوج G${sg}` : "مساحة الطالب")}</div>
       </div>
+      <div class="cinematic-hero-mark" aria-hidden="true"><span>404</span><small>LEARN · BUILD · GROW</small></div>
     </section>
 
     ${!sg && state.role === "student" ? `<section class="home-group-notice figma-group-notice"><div><strong>لم يتم تعيين فوجك بعد</strong><p>حدّد فوجك من صفحة الحساب وأرسل طلباً للإدارة حتى تظهر لك الملفات الخاصة بفوجك.</p></div><a href="#/compte" class="btn-primary">إعداد حسابي</a></section>` : ""}
 
-    <section class="figma-stats-grid" aria-label="ملخص المنصة">
-      <article class="figma-stat-card"><span class="figma-stat-accent amber"></span><strong>10</strong><b>أفواج دراسية</b><small>مجتمع واحد</small><span class="figma-stat-icon">${statIcon.group}</span></article>
-      <article class="figma-stat-card"><span class="figma-stat-accent green"></span><strong>07</strong><b>مواد أساسية</b><small>محتوى منظّم</small><span class="figma-stat-icon">${statIcon.book}</span></article>
-      <article class="figma-stat-card"><span class="figma-stat-accent gold"></span><strong>${availableFiles.toLocaleString("en-US")}</strong><b>ملف متاح</b><small>وفق صلاحيات حسابك</small><span class="figma-stat-icon">${statIcon.file}</span></article>
-      <article class="figma-stat-card"><span class="figma-stat-accent brown"></span><strong>${sg ? `G${sg}` : (state.role === "owner" ? "ALL" : "—")}</strong><b>${state.role === "owner" ? "كل الأفواج" : "فوجك الدراسي"}</b><small>${state.role === "owner" ? "صلاحيات المالك" : "مساحتك الجامعية"}</small><span class="figma-stat-icon">${statIcon.user}</span></article>
+    <section class="cinematic-welcome-strip">
+      <div><span class="cinematic-section-kicker">YOUR SPACE, YOUR PACE</span><h2>كل شيء يبدأ من هنا</h2><p>اختر وجهتك وواصل التقدم بخطوات واضحة.</p></div>
+      <div class="cinematic-strip-stats"><span><b>10</b><small>أفواج</small></span><i></i><span><b>07</b><small>مواد</small></span><i></i><span><b>${availableFiles.toLocaleString("en-US")}</b><small>ملف متاح</small></span></div>
     </section>
 
-    <section class="figma-dashboard-grid">
-      <div class="figma-panel figma-courses-panel">
-        <div class="figma-panel-heading"><div><h2>تابع موادك الدراسية</h2><p>اختر المادة للوصول إلى المحاضرات والأعمال الموجّهة والتطبيقية</p></div><a href="#/groupes" class="figma-panel-pill">كل المواد</a></div>
-        <div class="figma-courses-grid">${subjectCards}</div>
-      </div>
-      <div class="figma-side-panels">
-        <section class="figma-panel figma-week-panel">
-          <div class="figma-panel-heading"><div><h2>خطة هذا الأسبوع</h2><p>خطوات بسيطة لتنظيم وقتك</p></div><span class="figma-panel-symbol">◷</span></div>
-          <a class="figma-week-row" href="#/horaire"><span class="figma-week-dot amber"></span><span><strong>راجع جدولك الدراسي</strong><small>تحقق من مواعيد المحاضرات والحصص</small></span><b>↗</b></a>
-          <a class="figma-week-row" href="#/study-plan"><span class="figma-week-dot green"></span><span><strong>نظّم جلسة مراجعة</strong><small>قسّم وقتك حسب المواد</small></span><b>↗</b></a>
-          <a class="figma-week-row" href="#/exams"><span class="figma-week-dot olive"></span><span><strong>تدرّب على امتحان سابق</strong><small>حضّر نفسك بالتطبيق</small></span><b>↗</b></a>
-        </section>
-        <section class="figma-panel figma-updates-panel">
-          <div class="figma-panel-heading"><div><h2>آخر المستجدات</h2><p>ابقَ على اطلاع بما يُضاف إلى منصتك</p></div><span class="figma-panel-symbol">✳</span></div>
-          <a class="figma-update-row" href="#/announcements"><span class="figma-update-icon green">＋</span><span><strong>ملفات وإعلانات جديدة</strong><small>تصفّح آخر ما نشرته الإدارة</small></span><b>↗</b></a>
-          <a class="figma-update-row" href="#/notifications"><span class="figma-update-icon amber">!</span><span><strong>تنبيهاتك وإشعاراتك</strong><small>راجع الرسائل والتنبيهات المهمة</small></span><b>↗</b></a>
-          <a class="figma-update-row" href="#/messages"><span class="figma-update-icon sage">✓</span><span><strong>تواصل مع زملائك</strong><small>افتح مساحة النقاش والشات</small></span><b>↗</b></a>
-        </section>
-      </div>
+    <section class="cinematic-shortcuts" aria-label="الوصول السريع">
+      <a class="cinematic-shortcut-card shortcut-files" href="#/search">
+        <span class="cinematic-shortcut-number">01 / LIBRARY</span><span class="cinematic-shortcut-icon" aria-hidden="true">▤</span>
+        <strong>My Files</strong><p>مكتبتك الدراسية وملفاتك المحفوظة في مكان واحد.</p><span class="cinematic-shortcut-link">افتح مكتبتي <b>↗</b></span>
+      </a>
+      <a class="cinematic-shortcut-card shortcut-news" href="#/announcements">
+        <span class="cinematic-shortcut-number">02 / UPDATES</span><span class="cinematic-shortcut-icon" aria-hidden="true">✳</span>
+        <strong>Latest Announcements</strong><p>آخر الإعلانات والمستجدات المهمة للطلبة.</p><span class="cinematic-shortcut-link">شاهد الإعلانات <b>↗</b></span>
+      </a>
+      <a class="cinematic-shortcut-card shortcut-materials" href="#/groupes">
+        <span class="cinematic-shortcut-number">03 / MATERIALS</span><span class="cinematic-shortcut-icon" aria-hidden="true">⌑</span>
+        <strong>Basic Materials</strong><p>ادخل إلى المواد الأساسية والمحاضرات وTD وTP.</p><span class="cinematic-shortcut-link">استكشف المواد <b>↗</b></span>
+      </a>
     </section>
-    <footer class="figma-home-footer"><bdi>info cc 404</bdi> · تعلّمك يستحق مساحة أفضل · ${new Date().getFullYear()}</footer>
+
+    <section class="cinematic-lower-grid">
+      <div class="cinematic-materials-panel">
+        <div class="cinematic-panel-heading"><div><span class="cinematic-section-kicker">THE CURRICULUM</span><h2>المواد الأساسية</h2><p>محتوى مرتب لتصل إلى ما تحتاجه بسرعة.</p></div><a href="#/groupes">كل المواد <b>↗</b></a></div>
+        <div class="cinematic-subject-grid">${subjectCards}</div>
+      </div>
+      <aside class="cinematic-quick-panel">
+        <span class="cinematic-section-kicker">QUICK ACCESS</span><h2>خطوتك التالية</h2>
+        <a href="#/horaire"><span>01</span><div><strong>الجدول الدراسي</strong><small>راجع حصصك القادمة</small></div><b>↗</b></a>
+        <a href="#/exams"><span>02</span><div><strong>أرشيف الامتحانات</strong><small>تدرّب على مواضيع سابقة</small></div><b>↗</b></a>
+        <a href="#/study-plan"><span>03</span><div><strong>مخطط المراجعة</strong><small>نظّم وقتك بذكاء</small></div><b>↗</b></a>
+        <a href="#/notifications"><span>04</span><div><strong>الإشعارات</strong><small>لا تفوّت أي تحديث</small></div><b>↗</b></a>
+      </aside>
+    </section>
+    <footer class="cinematic-home-footer"><bdi>info cc 404</bdi><span>AN ACADEMIC SPACE FOR WHAT COMES NEXT</span><small>${new Date().getFullYear()}</small></footer>
   `;
 }
 
